@@ -20,12 +20,19 @@ public class LoadBalancer {
 
         System.out.println("Load Balancer started on port " + PORT);
 
+        // Optimizing with a Thread Pool
+        java.util.concurrent.ExecutorService threadPool = java.util.concurrent.Executors.newCachedThreadPool();
+
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Accepted connection from " + clientSocket.getRemoteSocketAddress());
-                ClientHandler p = new ClientHandler(clientSocket, strategy, backendServers);
-                new Thread(p).start();
+                // Submit main handler to pool (it will use the same pool for its sub-tasks)
+                // Note: We use the same pool for everything. Be careful of exhaustion if we
+                // used FixedThreadPool.
+                // CachedThreadPool grows as needed so it's safer against deadlocks here.
+                ClientHandler p = new ClientHandler(clientSocket, strategy, backendServers, threadPool);
+                threadPool.submit(p);
             }
         } catch (IOException e) {
             e.printStackTrace();

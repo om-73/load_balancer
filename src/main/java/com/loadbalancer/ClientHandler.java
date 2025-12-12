@@ -8,11 +8,14 @@ public class ClientHandler implements Runnable {
     private Socket clientSocket;
     private LoadBalancingStrategy strategy;
     private List<BackendServer> backendServers;
+    private java.util.concurrent.ExecutorService threadPool;
 
-    public ClientHandler(Socket clientSocket, LoadBalancingStrategy strategy, List<BackendServer> backendServers) {
+    public ClientHandler(Socket clientSocket, LoadBalancingStrategy strategy, List<BackendServer> backendServers,
+            java.util.concurrent.ExecutorService threadPool) {
         this.clientSocket = clientSocket;
         this.strategy = strategy;
         this.backendServers = backendServers;
+        this.threadPool = threadPool;
     }
 
     @Override
@@ -27,19 +30,22 @@ public class ClientHandler implements Runnable {
         System.out.println("Forwarding request to " + targetServer);
 
         try (Socket backendSocket = new Socket(targetServer.getHost(), targetServer.getPort())) {
-            // Forwarding threads
-            Thread clientToBackend = new Thread(
+            // Forwarding via Thread Pool
+            java.util.concurrent.Future<?> f1 = threadPool.submit(
                     new DataTransfer(clientSocket.getInputStream(), backendSocket.getOutputStream()));
-            Thread backendToClient = new Thread(
+            java.util.concurrent.Future<?> f2 = threadPool.submit(
                     new DataTransfer(backendSocket.getInputStream(), clientSocket.getOutputStream()));
 
-            clientToBackend.start();
-            backendToClient.start();
-
-            clientToBackend.join();
-            backendToClient.join();
+            try {
+                // Wait for both to complete (or one to fail/close)
+                f1.get();
+                f2.get();
+            } catch (java.util.concurrent.ExecutionException | java.util.concurrent.CancellationException e) {
+                // Ignore
+            }
 
         } catch (IOException | InterruptedException e) {
+            System.out.println("Error forwarding to backend: " + e.getMessage());
             e.printStackTrace();
         } finally {
             closeClientSocket();
