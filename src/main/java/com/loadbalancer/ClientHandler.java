@@ -20,36 +20,58 @@ public class ClientHandler implements Runnable {
 
     @Override
     public void run() {
-        BackendServer targetServer = strategy.getNextServer(backendServers);
-        if (targetServer == null) {
-            System.err.println("No backend servers available.");
-            closeClientSocket();
-            return;
-        }
+        int attempts = 0;
+        int maxRetries = 3;
+        boolean success = false;
 
-        System.out.println("Forwarding request to " + targetServer);
+        while (attempts < maxRetries && !success) {
+            attempts++;
+            BackendServer targetServer = strategy.getNextServer(backendServers);
 
-        try (Socket backendSocket = new Socket(targetServer.getHost(), targetServer.getPort())) {
-            // Forwarding via Thread Pool
-            java.util.concurrent.Future<?> f1 = threadPool.submit(
-                    new DataTransfer(clientSocket.getInputStream(), backendSocket.getOutputStream()));
-            java.util.concurrent.Future<?> f2 = threadPool.submit(
-                    new DataTransfer(backendSocket.getInputStream(), clientSocket.getOutputStream()));
-
-            try {
-                // Wait for both to complete (or one to fail/close)
-                f1.get();
-                f2.get();
-            } catch (java.util.concurrent.ExecutionException | java.util.concurrent.CancellationException e) {
-                // Ignore
+            if (targetServer == null) {
+                System.err.println("No backend servers available.");
+                break;
             }
 
-        } catch (IOException | InterruptedException e) {
-            System.out.println("Error forwarding to backend: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            closeClientSocket();
+            try {
+                long startTime = System.currentTimeMillis();
+                try (Socket backendSocket = new Socket(targetServer.getHost(), targetServer.getPort())) {
+
+                    // Connection successful
+                    targetServer.incrementRequestCount();
+                    System.out.println("Forwarding request to " + targetServer);
+
+                    // Forwarding via Thread Pool
+                    java.util.concurrent.Future<?> f1 = threadPool.submit(
+                            new DataTransfer(clientSocket.getInputStream(), backendSocket.getOutputStream()));
+                    java.util.concurrent.Future<?> f2 = threadPool.submit(
+                            new DataTransfer(backendSocket.getInputStream(), clientSocket.getOutputStream()));
+
+                    try {
+                        // Wait for both to complete
+                        f1.get();
+                        f2.get();
+                    } catch (java.util.concurrent.ExecutionException | java.util.concurrent.CancellationException e) {
+                        // Ignore
+                    }
+
+                    long duration = System.currentTimeMillis() - startTime;
+                    targetServer.recordLatency(duration);
+                    success = true;
+                }
+            } catch (IOException | InterruptedException e) {
+                System.err.println(
+                        "❌ Failed to connect to " + targetServer + " (Attempt " + attempts + "/" + maxRetries + ")");
+                targetServer.setHealthy(false); // Mark unhealthy immediately
+                // Loop will continue to retry with a different server
+            }
         }
+
+        if (!success) {
+            System.err.println("Failed to process request after " + maxRetries + " attempts.");
+        }
+
+        closeClientSocket();
     }
 
     private void closeClientSocket() {

@@ -5,6 +5,7 @@ import shutil
 import threading
 import socket
 import select
+import subprocess
 
 # --- Configuration ---
 print_lock = threading.Lock()
@@ -38,6 +39,12 @@ last_request_count = 0
 current_rps = 0.0
 recent_logs = []
 MAX_LOGS = 5
+max_req_str = "N/A"
+min_req_str = "N/A"
+
+# System Stats State
+cpu_usage = "..."
+load_avg = "..."
 
 def clear_screen():
     sys.stdout.write("\033[2J\033[H")
@@ -66,6 +73,25 @@ def draw_box(title, y, x, height, width, color=WHITE):
     move_cursor(y + height - 1, x)
     sys.stdout.write(color + "└" + "─" * (width - 2) + "┘" + RESET)
 
+def get_system_stats():
+    global cpu_usage, load_avg
+    try:
+        # Get Load Avg
+        load = subprocess.check_output(["sysctl", "-n", "vm.loadavg"]).decode().strip()
+        load_avg = load.split(" ")[1] # 1 min avg usually follows '{ '
+
+        # Get CPU Usage (rough estimate from top)
+        # top -l 1 -n 0 | grep "CPU usage"
+        out = subprocess.check_output("top -l 1 -n 0 | grep 'CPU usage'", shell=True).decode().strip()
+        # Format: CPU usage: 10.5% user, 20.0% sys, 69.5% idle
+        parts = out.split(",")
+        user = parts[0].split(":")[1].strip().split("%")[0]
+        sys_val = parts[1].strip().split("%")[0]
+        cpu_usage = f"{float(user) + float(sys_val):.1f}%"
+    except:
+        cpu_usage = "N/A"
+        load_avg = "N/A"
+
 def print_dashboard():
     global current_rps, last_rps_time, last_request_count
     with print_lock:
@@ -74,12 +100,9 @@ def print_dashboard():
 def _print_dashboard_internal():
     global current_rps, last_rps_time, last_request_count
     # Force default if not a tty or too small
-    # shutil.get_terminal_size fallback is only used if the system call fails, 
-    # but sometimes it returns (0, 0) or (80, 24) but maybe I messed up the logic?
-    # Let's just hardcode a default if it looks wrong.
     try:
         w, h = shutil.get_terminal_size((80, 24))
-        if w < 40 or h < 10: # Even looser check
+        if w < 40 or h < 10: 
              width, height = 80, 24
         else:
              width, height = w, h
@@ -88,18 +111,10 @@ def _print_dashboard_internal():
     
     # Ensure minimum size
     if width < 60 or height < 20:
-         # Fallback for small screens
-         # sys.stdout.write("\033[2J\033[H")
-         # print("Terminal too small for dashboard.")
-         # return
-         width, height = 80, 24 # Just force it
-
+         width, height = 80, 24 
 
     # Hide cursor
     sys.stdout.write("\033[?25l")
-    
-    # Background
-    # sys.stdout.write(BG_BLACK) 
     
     # Draw Main Border
     draw_box("Load Balancer Dashboard", 1, 1, height, width, BLUE)
@@ -129,11 +144,18 @@ def _print_dashboard_internal():
     move_cursor(5, 2)
     sys.stdout.write(BLUE + "─" * (width - 2) + RESET)
     
-    # --- Backend Distribution ---
+    # --- System Stats Section ---
     move_cursor(6, 4)
+    sys.stdout.write(f"{BOLD}System Load:{RESET} {load_avg}  {BOLD}CPU:{RESET} {cpu_usage}")
+
+    move_cursor(7, 4)
+    sys.stdout.write(f"{BOLD}Max Req:{RESET} {max_req_str}  {BOLD}Min Req:{RESET} {min_req_str}")
+
+    # --- Backend Distribution ---
+    move_cursor(9, 4)
     sys.stdout.write(f"{BOLD}Backend Distribution:{RESET}")
     
-    y_offset = 8
+    y_offset = 11
     max_val = max(counts.values()) if counts.values() else 1
     # max bar width available
     bar_width_area = width - 20 
@@ -183,13 +205,15 @@ def add_log(msg):
         recent_logs.pop(0)
 
 def reset_stats():
-    global counts, total_requests, success_requests, failed_requests, start_time, last_request_count
+    global counts, total_requests, success_requests, failed_requests, start_time, last_request_count, max_req_str, min_req_str
     counts = {}
     total_requests = 0
     success_requests = 0
     failed_requests = 0
     start_time = time.time()
     last_request_count = 0
+    max_req_str = "N/A"
+    min_req_str = "N/A"
     add_log(f"{YELLOW}--- Stats Cleared ---{RESET}")
     print_dashboard()
 
@@ -211,11 +235,20 @@ def remote_listener():
         except:
             pass
 
+def stats_updater():
+    while True:
+        get_system_stats()
+        print_dashboard()
+        time.sleep(2)
 
 # --- Main Loop ---
 # Start Listener
 listener = threading.Thread(target=remote_listener, daemon=True)
 listener.start()
+
+# Start Stats Updater
+stats_thread = threading.Thread(target=stats_updater, daemon=True)
+stats_thread.start()
 
 clear_screen()
 print_dashboard()
@@ -246,7 +279,7 @@ try:
             add_log(f"{RED}No Backends!{RESET}")
             print_dashboard()
             continue
-
+        
         # Case 4: Connection Error "Error forwarding to backend"
         if "Error forwarding to backend" in line:
             failed_requests += 1
@@ -254,6 +287,37 @@ try:
             
             add_log(f"{RED}Backend Fail!{RESET}")
             print_dashboard()
+            continue
+            
+        # Case 5: Health Status Change
+        # Log: ⚠️  Server localhost:8081 status changed to: UNHEALTHY
+        if "status changed to:" in line:
+            parts = line.split("status changed to:")
+            status = parts[1].strip()
+            # Extract server just before "status"
+            # format: ... Server localhost:8081 ...
+            srv_part = parts[0]
+            # Simple parsing:
+            if "UNHEALTHY" in status:
+                add_log(f"{RED}{BOLD}Server DOWN!{RESET}")
+            else:
+                add_log(f"{GREEN}{BOLD}Server UP!{RESET}")
+            print_dashboard()
+            continue
+            
+        # Case 6: Stats Parsing
+        # 📊 Stats - Max Requests: Port 8081 (150) | Min Requests: Port 8083 (142)
+        if "📊 Stats" in line:
+            match_stats = re.search(r"Max Requests: Port (\d+) \((\d+)\) \| Min Requests: Port (\d+) \((\d+)\)", line)
+            if match_stats:
+                max_port = match_stats.group(1)
+                max_val = match_stats.group(2)
+                min_port = match_stats.group(3)
+                min_val = match_stats.group(4)
+                
+                max_req_str = f"Port {max_port} ({max_val})"
+                min_req_str = f"Port {min_port} ({min_val})"
+                print_dashboard()
             continue
 
 except KeyboardInterrupt:

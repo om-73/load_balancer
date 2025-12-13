@@ -7,35 +7,97 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class LoadBalancer {
-    private static final int PORT = 8080;
 
     public static void main(String[] args) {
-        List<BackendServer> backendServers = new ArrayList<>();
-        // Hardcoded backends for demonstration
-        backendServers.add(new BackendServer("localhost", 8081));
-        backendServers.add(new BackendServer("localhost", 8082));
-        backendServers.add(new BackendServer("localhost", 8083));
+        // Configuration
+        // Listening Ports: 8080, 8081, 8082, 8083 matches the user requirement
+        // Backend Ports: 9081, 9082, 9083 are the actual servers
+        int[] listeningPorts = { 8080, 8081, 8082, 8083 };
+
+        // Thread-safe list for backend servers
+        List<BackendServer> backendServers = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+        // Use args if provided, otherwise default to 9081-9083
+        if (args.length > 0) {
+            for (String arg : args) {
+                try {
+                    int port = Integer.parseInt(arg);
+                    backendServers.add(new BackendServer("localhost", port));
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid port: " + arg);
+                }
+            }
+        } else {
+            // Default backends
+            backendServers.add(new BackendServer("localhost", 9081));
+            backendServers.add(new BackendServer("localhost", 9082));
+            backendServers.add(new BackendServer("localhost", 9083));
+        }
+
+        // Control Port Listener (8888)
+        new Thread(() -> {
+            try (ServerSocket controlSocket = new ServerSocket(8888)) {
+                System.out.println("🔧 Control Port listening on 8888");
+                while (true) {
+                    try (Socket client = controlSocket.accept();
+                            java.io.BufferedReader in = new java.io.BufferedReader(
+                                    new java.io.InputStreamReader(client.getInputStream()));
+                            java.io.PrintWriter out = new java.io.PrintWriter(client.getOutputStream(), true)) {
+
+                        String input = in.readLine();
+                        if (input != null && input.startsWith("ADD")) {
+                            // Format: ADD host port
+                            String[] parts = input.split(" ");
+                            if (parts.length == 3) {
+                                String host = parts[1];
+                                int port = Integer.parseInt(parts[2]);
+                                backendServers.add(new BackendServer(host, port));
+                                System.out.println("✅ Added new backend: " + host + ":" + port);
+                                out.println("OK");
+                            } else {
+                                out.println("ERROR: Usage ADD <host> <port>");
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("Control Port Error: " + e.getMessage());
+            }
+        }).start();
+
+        if (backendServers.isEmpty()) {
+            System.err.println("No valid backend servers configured. Exiting.");
+            return;
+        }
 
         LoadBalancingStrategy strategy = new RoundRobinStrategy();
 
-        System.out.println("Load Balancer started on port " + PORT);
+        // Initialize and start Health Check Service
+        HealthCheckService healthCheckService = new HealthCheckService(backendServers);
+        healthCheckService.start();
+
+        System.out.println("Load Balancer starting on ports: 8080, 8081, 8082, 8083");
+        System.out.println("Backend Servers: " + backendServers);
 
         // Optimizing with a Thread Pool
         java.util.concurrent.ExecutorService threadPool = java.util.concurrent.Executors.newCachedThreadPool();
 
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            while (true) {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("Accepted connection from " + clientSocket.getRemoteSocketAddress());
-                // Submit main handler to pool (it will use the same pool for its sub-tasks)
-                // Note: We use the same pool for everything. Be careful of exhaustion if we
-                // used FixedThreadPool.
-                // CachedThreadPool grows as needed so it's safer against deadlocks here.
-                ClientHandler p = new ClientHandler(clientSocket, strategy, backendServers, threadPool);
-                threadPool.submit(p);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+        // Start a listener for each port
+        for (int port : listeningPorts) {
+            new Thread(() -> {
+                try (ServerSocket serverSocket = new ServerSocket(port)) {
+                    System.out.println("Listening on port " + port);
+                    while (true) {
+                        Socket clientSocket = serverSocket.accept();
+                        ClientHandler p = new ClientHandler(clientSocket, strategy, backendServers, threadPool);
+                        threadPool.submit(p);
+                    }
+                } catch (IOException e) {
+                    System.err.println("Error on port " + port + ": " + e.getMessage());
+                }
+            }).start();
         }
     }
 }

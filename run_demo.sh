@@ -15,12 +15,12 @@ echo "Compiling..."
 javac src/main/java/com/loadbalancer/*.java
 
 # Start backends
-echo "Starting 3 backend servers on ports 8081, 8082, 8083..."
-python3 mock_server.py 8081 > backend1.log 2>&1 &
+echo "Starting 3 backend servers on ports 9081, 9082, 9083..."
+python3 mock_server.py 9081 > backend1.log 2>&1 &
 PID1=$!
-python3 mock_server.py 8082 > backend2.log 2>&1 &
+python3 mock_server.py 9082 > backend2.log 2>&1 &
 PID2=$!
-python3 mock_server.py 8083 > backend3.log 2>&1 &
+python3 mock_server.py 9083 > backend3.log 2>&1 &
 PID3=$!
 
 # Start LB
