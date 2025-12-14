@@ -278,12 +278,18 @@
         <span>Server Time: <span id="serverTime"
                 style="color: var(--accent-color); font-weight: 600;">--:--:--</span></span>
         <span style="margin: 0 10px;">•</span>
-        <span class="subtitle" style="display: inline;">Cloud-Ready Tooling (v3.3) <span id="updateTick"
-                style="color: #2ea043">●</span></span>
+        <span>Source:
+            <select id="dataSource" onchange="updateDataSource()"
+                style="background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.75rem;">
+                <option value="/">Cloud Demo (Vercel)</option>
+                <option value="http://localhost:8000">Localhost:8000</option>
+            </select>
+        </span>
         <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px;">
             <span id="connStatus" style="font-size: 0.75rem; color: #d29922;">Connecting...</span>
             <button onclick="toggleConnection()" id="connBtn"
-                style="width: auto; padding: 4px 8px; font-size: 0.7rem; background: #21262d; border: 1px solid #30363d;">Disconnect</button>
+                style="width: auto; padding: 4px 8px; font-size: 0.7rem; background: #21262d; border: 1px solid #30363d;">Pause
+                Updates</button>
         </div>
     </div>
 
@@ -468,8 +474,10 @@
                 concurrency: document.getElementById('concurrency').value
             };
 
+            const endpoint = apiBase === "/" ? "/run-test" : (apiBase + "/run-test");
+
             try {
-                const res = await fetch('/run-test', {
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
@@ -521,8 +529,10 @@
                 concurrency: document.getElementById('liveConcurrency').value || 10
             };
 
+            const endpoint = apiBase === "/" ? "/run-test" : (apiBase + "/run-test");
+
             try {
-                const res = await fetch('/run-test', {
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
@@ -566,8 +576,10 @@
                 host: document.getElementById('scanHost').value
             };
 
+            const endpoint = apiBase === "/" ? "/scan-ports" : (apiBase + "/scan-ports");
+
             try {
-                const res = await fetch('/scan-ports', {
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
@@ -599,7 +611,7 @@
             const spinner = document.getElementById('monitorSpinner');
             const resultDiv = document.getElementById('monitorResult');
             const urlInput = document.getElementById('liveUrl').value;
-            const liveTitle = document.querySelector('.card h2:contains("Live Dashboard")') || document.querySelector('.card h2'); // Fallback
+            const liveTitle = document.querySelector('.card h2:contains("Live Dashboard")');
 
             if (monitorInterval) {
                 // STOP Monitoring
@@ -651,8 +663,10 @@
                 concurrency: 1
             };
 
+            const endpoint = apiBase === "/" ? "/run-test" : (apiBase + "/run-test");
+
             try {
-                const res = await fetch('/run-test', {
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
@@ -697,11 +711,39 @@
             }
         }
 
+        // Data Source Management
+        let apiBase = "/";
+
+        function updateDataSource() {
+            const val = document.getElementById('dataSource').value;
+            if (val === "/") {
+                apiBase = "/";
+            } else {
+                // Must ensure no trailing slash logic issues, but localhost:8000 is fine
+                apiBase = val.replace(/\/$/, "");
+            }
+            console.log("Data Source Changed to:", apiBase);
+            // Flash status
+            const status = document.getElementById('connStatus');
+            status.innerText = "Switching...";
+            document.getElementById('backendBars').innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--text-secondary);">Connecting to new source...</div>';
+
+            // Allow mixed content if strictly needed (browser warning)
+            if (window.location.protocol === 'https:' && apiBase.startsWith('http://')) {
+                alert("⚠️ Mixed Content Warning: You are on HTTPS (Vercel) trying to access HTTP (Localhost).\n\nIf it fails, check your browser address bar for the 'Shield' icon to 'Load Unsafe Scripts' or 'Allow Insecure Content'.");
+            }
+        }
+
         // Dashboard Poller
         async function fetchStats() {
             try {
+                // Construct URL based on apiBase
+                // If apiBase is "/", result is "/stats"
+                // If apiBase is "http://localhost:8000", result is "http://localhost:8000/stats"
+                const endpoint = apiBase === "/" ? "/stats" : (apiBase + "/stats");
+
                 // Add timestamp to prevent caching
-                const res = await fetch('/stats?t=' + Date.now());
+                const res = await fetch(endpoint + '?t=' + Date.now());
                 if (res.ok) {
                     const data = await res.json();
                     setStatus('ok');
@@ -710,9 +752,21 @@
                     setStatus('error');
                 }
             } catch (e) {
-                console.error("Polling error:", e);
+                console.error("Polling error (" + apiBase + "):", e);
                 setStatus('error');
             }
+        }
+        if (res.ok) {
+            const data = await res.json();
+            setStatus('ok');
+            updateDashboard(data);
+        } else {
+            setStatus('error');
+        }
+            } catch (e) {
+            console.error("Polling error:", e);
+            setStatus('error');
+        }
         }
 
         function updateDashboard(data) {
