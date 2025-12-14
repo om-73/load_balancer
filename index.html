@@ -4,36 +4,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Load Balancer Tester</title>
+    <title>Load Balancer & Port Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: rgba(22, 27, 34, 0.8);
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent-color: #2f81f7;
+            --accent-hover: #58a6ff;
+            --success-color: #2ea043;
+            --danger-color: #f85149;
+            --warning-color: #d29922;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: #1a1a1a;
-            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
+            padding: 2rem;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(47, 129, 247, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(46, 160, 67, 0.1) 0%, transparent 20%);
         }
 
         .container {
-            background-color: #2d2d2d;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            width: 400px;
+            width: 100%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
         }
 
-        h1 {
+        @media (max-width: 800px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            border-color: #6e7681;
+        }
+
+        h1,
+        h2,
+        h3 {
             margin-top: 0;
-            color: #4CAF50;
-            text-align: center;
+            color: #ffffff;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .input-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.2rem;
         }
 
         label {
@@ -41,86 +92,114 @@
             margin-bottom: 0.5rem;
             font-weight: 500;
             font-size: 0.9rem;
-            color: #aaa;
+            color: var(--text-secondary);
         }
 
         input {
-            width: 90%;
-            padding: 10px;
+            width: 100%;
+            padding: 10px 12px;
             border-radius: 6px;
-            border: 1px solid #444;
-            background-color: #3d3d3d;
+            border: 1px solid var(--border-color);
+            background-color: #0d1117;
             color: white;
-            font-size: 1rem;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.2);
         }
 
         button {
             width: 100%;
             padding: 12px;
-            background-color: #4CAF50;
+            background-color: var(--success-color);
             color: white;
             border: none;
             border-radius: 6px;
-            font-size: 1rem;
-            font-weight: bold;
+            font-size: 0.95rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.1s;
         }
 
         button:hover {
-            background-color: #45a049;
+            background-color: #3fb950;
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
         }
 
         button:disabled {
-            background-color: #555;
+            background-color: var(--border-color);
+            color: var(--text-secondary);
             cursor: not-allowed;
+            transform: none;
         }
 
-        #result {
-            margin-top: 2rem;
+        #scanBtn {
+            background-color: var(--accent-color);
+        }
+
+        #scanBtn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .results-box {
+            margin-top: 1.5rem;
             padding: 1rem;
             border-radius: 8px;
-            background: #252526;
+            background: #0d1117;
+            border: 1px solid var(--border-color);
             display: none;
+            font-family: 'SF Mono', 'Segoe UI Mono', 'Roboto Mono', monospace;
+            font-size: 0.9rem;
         }
 
         .stat {
             display: flex;
             justify-content: space-between;
             margin-bottom: 0.5rem;
+            align-items: center;
         }
 
         .stat-label {
-            color: #888;
+            color: var(--text-secondary);
         }
 
         .stat-value {
-            font-weight: bold;
-            font-family: monospace;
+            font-weight: 600;
+            color: #fff;
         }
 
         .success {
-            color: #4CAF50;
+            color: var(--success-color);
         }
 
         .fail {
-            color: #f44336;
+            color: var(--danger-color);
         }
 
         .rps {
-            color: #FFC107;
-            font-size: 1.2rem;
+            color: var(--warning-color);
+            font-size: 1.1rem;
         }
 
         .spinner {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, .3);
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, .3);
             border-radius: 50%;
             border-top-color: #fff;
             animation: spin 1s ease-in-out infinite;
-            margin-right: 10px;
+            margin-right: 8px;
             vertical-align: middle;
             display: none;
         }
@@ -130,80 +209,140 @@
                 transform: rotate(360deg);
             }
         }
+
+        /* Dashboard Styles */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .dash-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .dash-item-val {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 5px;
+        }
+
+        small.subtitle {
+            display: block;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
     </style>
 </head>
 
 <body>
 
+    <h1 style="margin-bottom: 0.2rem;">⚡️ Load Balancer & Scanner</h1>
+    <small class="subtitle">Cloud-Ready Tooling • Vercel Compatible</small>
+
     <div class="container">
-        <h1>🚀 Load Launcher</h1>
-        <p style="text-align: center; color: #888; font-size: 0.8rem; margin-top: -10px;">(Load Test: Local Backend Only
-            | Port Scanner: Works on Vercel)</p>
 
-        <div class="input-group">
-            <label>Target URL</label>
-            <input type="text" id="url" value="http://localhost:8080">
-        </div>
+        <!-- Load Launcher & Scanner Section -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
 
-        <div class="input-group">
-            <label>Total Requests</label>
-            <input type="number" id="requests" value="1000">
-        </div>
+            <!-- Load Launcher -->
+            <div class="card">
+                <h2>🚀 Load Launcher</h2>
+                <div class="input-group">
+                    <label>Target URL</label>
+                    <input type="text" id="url" value="http://localhost:8080" placeholder="http://localhost:8080">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="input-group">
+                        <label>Total Requests</label>
+                        <input type="number" id="requests" value="1000">
+                    </div>
+                    <div class="input-group">
+                        <label>Concurrency</label>
+                        <input type="number" id="concurrency" value="50">
+                    </div>
+                </div>
 
-        <div class="input-group">
-            <label>Concurrency (Threads)</label>
-            <input type="number" id="concurrency" value="50">
-        </div>
+                <button onclick="runTest()" id="btn">
+                    <span class="spinner" id="spinner"></span>
+                    <span id="btnText">FIRE LOAD TEST</span>
+                </button>
 
-        <button onclick="runTest()" id="btn">
-            <span class="spinner" id="spinner"></span>
-            <span id="btnText">FIRE LOAD TEST</span>
-        </button>
-
-        </button>
-
-        <div id="result">
-            <div class="stat"><span class="stat-label">Duration:</span><span class="stat-value" id="resDuration"></span>
-            </div>
-            <div class="stat"><span class="stat-label">RPS:</span><span class="stat-value rps" id="resRPS"></span></div>
-            <hr style="border-color: #444">
-            <div class="stat"><span class="stat-label">Success:</span><span class="stat-value success"
-                    id="resSuccess"></span></div>
-            <div class="stat"><span class="stat-label">Failed:</span><span class="stat-value fail"
-                    id="resFailed"></span></div>
-        </div>
-
-        <h1 style="margin-top: 2rem;">📊 Live Dashboard</h1>
-        <div id="dashboard" style="width: 100%; background: #252526; padding: 1rem; border-radius: 8px;">
-            <div class="stat"><span class="stat-label">Total Requests:</span><span class="stat-value"
-                    id="dashTotal">0</span></div>
-            <div class="stat"><span class="stat-label">Success:</span><span class="stat-value success"
-                    id="dashSuccess">0</span></div>
-            <div class="stat"><span class="stat-label">Failed:</span><span class="stat-value fail"
-                    id="dashFailed">0</span></div>
-            <div class="stat"><span class="stat-label">RPS:</span><span class="stat-value rps" id="dashRPS">0.0</span>
+                <div id="result" class="results-box">
+                    <div class="stat"><span class="stat-label">Duration:</span><span class="stat-value"
+                            id="resDuration"></span></div>
+                    <div class="stat"><span class="stat-label">RPS:</span><span class="stat-value rps"
+                            id="resRPS"></span></div>
+                    <div style="height: 1px; background: var(--border-color); margin: 0.5rem 0;"></div>
+                    <div class="stat"><span class="stat-label">Success:</span><span class="stat-value success"
+                            id="resSuccess"></span></div>
+                    <div class="stat"><span class="stat-label">Failed:</span><span class="stat-value fail"
+                            id="resFailed"></span></div>
+                </div>
+                <p
+                    style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; margin-top: 1rem; margin-bottom: 0;">
+                    ⚠️ Requires local backend
+                </p>
             </div>
 
-            <h3 style="margin-top: 1rem; color: #4CAF50; font-size: 0.9rem;">Backend Distribution</h3>
+            <!-- Port Scanner -->
+            <div class="card">
+                <h2>🔍 Port Scanner</h2>
+                <div class="input-group">
+                    <label>Target Host / URL</label>
+                    <input type="text" id="scanHost" value="google.com" placeholder="e.g. google.com">
+                </div>
+                <button onclick="scanPorts()" id="scanBtn">
+                    <span class="spinner" id="scanSpinner"></span>
+                    <span id="scanBtnText">SCAN PORTS</span>
+                </button>
+
+                <div id="scanResult" class="results-box" style="white-space: pre-wrap;"></div>
+                <p
+                    style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; margin-top: 1rem; margin-bottom: 0;">
+                    ✅ Works on Vercel
+                </p>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div class="card">
+            <h2>📊 Live Dashboard</h2>
+
+            <div class="dashboard-grid">
+                <div class="dash-item">
+                    <span class="stat-label">RPS</span>
+                    <span class="dash-item-val rps" id="dashRPS">0.0</span>
+                </div>
+                <div class="dash-item">
+                    <span class="stat-label">Total</span>
+                    <span class="dash-item-val" id="dashTotal">0</span>
+                </div>
+                <div class="dash-item">
+                    <span class="stat-label">Success</span>
+                    <span class="dash-item-val success" id="dashSuccess">0</span>
+                </div>
+                <div class="dash-item">
+                    <span class="stat-label">Failed</span>
+                    <span class="dash-item-val fail" id="dashFailed">0</span>
+                </div>
+            </div>
+
+            <h3 style="font-size: 1rem; margin-bottom: 1rem;">Backend Distribution</h3>
             <div id="backendBars">
-                <!-- Bars will be injected here -->
-                <div style="color: #666; font-size: 0.8rem; text-align: center;">Waiting for data...</div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem; text-align: center; padding: 2rem;">
+                    Waiting for data...
+                </div>
             </div>
         </div>
 
-        <h1 style="margin-top: 2rem;">🔍 Port Scanner</h1>
-        <div class="input-group">
-            <label>Target Host / URL</label>
-            <input type="text" id="scanHost" value="google.com">
-        </div>
-        <button onclick="scanPorts()" id="scanBtn">
-            <span class="spinner" id="scanSpinner"></span>
-            <span id="scanBtnText">SCAN PORTS</span>
-        </button>
-
-        <div id="scanResult"
-            style="margin-top: 2rem; padding: 1rem; border-radius: 8px; background: #252526; display: none; white-space: pre-wrap; font-family: monospace;">
-        </div>
     </div>
 
     <script>
@@ -292,21 +431,13 @@
         // Dashboard Poller
         async function fetchStats() {
             try {
-                // Try Vercel path first, fallback to root if needed (handled by rewrites usually)
-                // In local dev without vercel CLI, we might need /stats
-                // We'll just try /stats which maps to /api/stats.py on Vercel via vercel.json rewrite
-                // But locally web_server.py needs to handle /stats
-
-                // Correction: locally web_server.py handles /stats.
-                // On Vercel, if we use /stats in fetch, we need vercel.json rewrite: source: /stats -> dest: /api/stats.py
-
                 const res = await fetch('/stats');
                 if (res.ok) {
                     const data = await res.json();
                     updateDashboard(data);
                 }
             } catch (e) {
-                console.log("Stats poll fail", e);
+                // Silent fail for polling
             }
         }
 
@@ -323,7 +454,7 @@
             const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
             if (Object.keys(counts).length === 0) {
-                barsContainer.innerHTML = '<div style="color: #666; font-size: 0.8rem; text-align: center;">No traffic yet</div>';
+                barsContainer.innerHTML = '<div style="color: #666; font-size: 0.9rem; text-align: center; padding: 1rem;">No active traffic</div>';
                 return;
             }
 
@@ -333,23 +464,24 @@
                 const percentage = (count / max) * 100;
 
                 const row = document.createElement('div');
-                row.style.marginBottom = '8px';
+                row.style.marginBottom = '12px';
 
                 const label = document.createElement('div');
                 label.style.display = 'flex';
                 label.style.justifyContent = 'space-between';
-                label.style.fontSize = '0.8rem';
-                label.style.marginBottom = '2px';
-                label.innerHTML = `<span style="color: #aaa">Port ${port}</span> <span>${count}</span>`;
+                label.style.fontSize = '0.85rem';
+                label.style.marginBottom = '4px';
+                label.innerHTML = `<span style="color: #8b949e">Port ${port}</span> <span style="font-family: monospace">${count}</span>`;
 
                 const barBg = document.createElement('div');
-                barBg.style.background = '#444';
+                barBg.style.background = '#21262d';
                 barBg.style.borderRadius = '4px';
                 barBg.style.height = '8px';
                 barBg.style.width = '100%';
+                barBg.style.overflow = 'hidden';
 
                 const barFill = document.createElement('div');
-                barFill.style.background = '#4CAF50'; // Green
+                barFill.style.background = 'linear-gradient(90deg, #2ea043, #3fb950)';
                 barFill.style.height = '100%';
                 barFill.style.borderRadius = '4px';
                 barFill.style.width = percentage + '%';
@@ -365,7 +497,6 @@
         // Poll every 1 second
         setInterval(fetchStats, 1000);
     </script>
-
 </body>
 
 </html>
