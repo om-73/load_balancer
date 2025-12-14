@@ -846,6 +846,17 @@
             } catch (e) {
                 console.error("Polling error (" + apiBase + "):", e);
                 setStatus('error');
+
+                // Show guide if Mixed Content suspected
+                if (apiBase.startsWith("http://") && window.location.protocol === "https:") {
+                    const errBox = document.getElementById('errorBox');
+                    const errMsg = document.getElementById('errorMsg');
+                    errBox.style.display = 'block';
+                    errMsg.innerHTML = `<strong>🔒 Connection Blocked (Mixed Content)</strong><br>
+                     Your browser is blocking the connection to <b>Localhost</b> because this page is on <b>HTTPS</b>.<br><br>
+                     👉 <strong>Solution:</strong> Look for a <b>Shield Icon</b> or <b>Lock Icon</b> in your address bar URL, click it, and select <b>"Allow Insecure Content"</b> or <b>"Disable Protection for keeping me safe"</b> (temporary).<br>
+                     <br><em>Alternative: Run the dashboard locally at <a href="http://localhost:8000" style="color:var(--text-primary)">http://localhost:8000</a></em>`;
+                }
             }
         }
         if (res.ok) {

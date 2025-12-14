@@ -228,25 +228,38 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps(response_data).encode())
+
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+        elif self.path == "/upload-strategy":
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            
+            try:
+                data = json.loads(post_data)
+                java_code = data.get("code")
+                if not java_code:
+                    raise Exception("No 'code' field in payload")
+                
+                # 1. Save File
+                src_path = "src/main/java/com/loadbalancer/CustomStrategy.java"
+                with open(src_path, "w") as f:
+                    f.write(java_code)
+                    
                 # 2. Recompile
-                # We need to compile everything including the new file
                 print("Compiling CustomStrategy...")
                 result = subprocess.run(["javac", "-d", "bin", src_path, "-cp", "src/main/java"], capture_output=True, text=True)
                 if result.returncode != 0:
                      raise Exception("Compilation Failed:\n" + result.stderr)
                 
-                # 3. Restart Load Balancer (Soft Restart)
-                # The easiest way is to send a restart signal or just rely on the user to restart? 
-                # The User Request implies "upload... after that dashboard visualize". 
-                # So I should probably autoscript the restart.
-                # But the 'web_server' doesn't control `run_demo.sh`.
-                # I can perhaps spawn a new LoadBalancer process and kill the old one?
-                # Or simplified: Just return success and tell the UI to say "Restarting..."
-                # For this demo, let's assume I can trigger a restart script, OR just tell the user to restart.
-                # actually, step 66 says "Logic to Recompile and Restart".
-                
-                # Let's try to run a restart script
-                # background restart
+                # 3. Restart Load Balancer
                 subprocess.Popen(["./restart_lb.sh"])
                 
                 self.send_response(200)
@@ -256,6 +269,8 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"status": "Strategy Uploaded & Compiling. Restarting Service..."}).encode())
 
             except Exception as e:
+                with open("debug_upload.log", "a") as f:
+                    f.write(f"Error: {e}\n")
                 self.send_response(500)
                 self.send_header('Content-type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
