@@ -353,11 +353,19 @@
                         <input type="number" id="liveConcurrency" value="10">
                     </div>
                 </div>
-                <button onclick="runLiveTest()" id="liveBtn">
-                    <span class="spinner" id="liveSpinner"></span>
-                    <span id="liveBtnText">TEST LIVE URL</span>
-                </button>
+                <div style="display: flex; gap: 1rem;">
+                    <button onclick="runLiveTest()" id="liveBtn" style="flex: 1;">
+                        <span class="spinner" id="liveSpinner"></span>
+                        <span id="liveBtnText">TEST LIVE URL</span>
+                    </button>
+                    <button onclick="toggleMonitor()" id="monitorBtn"
+                        style="flex: 1; background-color: var(--warning-color);">
+                        <span class="spinner" id="monitorSpinner"></span>
+                        <span id="monitorBtnText">START MONITOR</span>
+                    </button>
+                </div>
 
+                <!-- Load Test Results -->
                 <div id="liveResult" class="results-box">
                     <div class="stat"><span class="stat-label">Duration:</span><span class="stat-value"
                             id="liveResDuration"></span></div>
@@ -368,6 +376,18 @@
                             id="liveResSuccess"></span></div>
                     <div class="stat"><span class="stat-label">Failed:</span><span class="stat-value fail"
                             id="liveResFailed"></span></div>
+                </div>
+
+                <!-- Monitor Results -->
+                <div id="monitorResult" class="results-box"
+                    style="display:none; border-top: 1px solid var(--border-color); margin-top: 1rem; padding-top: 1rem;">
+                    <div style="text-align: center; margin-bottom: 0.5rem; font-weight: bold;">LIVE MONITORING</div>
+                    <div class="stat"><span class="stat-label">Status:</span><span class="stat-value"
+                            id="monStatus">Checking...</span></div>
+                    <div class="stat"><span class="stat-label">Latency:</span><span class="stat-value"
+                            id="monLatency">--</span></div>
+                    <div class="stat"><span class="stat-label">Last Check:</span><span class="stat-value"
+                            id="monLastCheck">--</span></div>
                 </div>
             </div>
 
@@ -567,6 +587,82 @@
                 btn.disabled = false;
                 spinner.style.display = 'none';
                 btnText.innerText = 'SCAN PORTS';
+            }
+        }
+
+        let monitorInterval = null;
+
+        async function toggleMonitor() {
+            const btn = document.getElementById('monitorBtn');
+            const btnText = document.getElementById('monitorBtnText');
+            const spinner = document.getElementById('monitorSpinner');
+            const resultDiv = document.getElementById('monitorResult');
+            const urlInput = document.getElementById('liveUrl').value;
+
+            if (monitorInterval) {
+                // STOP Monitoring
+                clearInterval(monitorInterval);
+                monitorInterval = null;
+                btnText.innerText = 'START MONITOR';
+                spinner.style.display = 'none';
+                btn.style.backgroundColor = 'var(--warning-color)';
+                return;
+            }
+
+            if (!urlInput) {
+                alert("Please enter a URL!");
+                return;
+            }
+
+            // START Monitoring
+            btnText.innerText = 'STOP MONITOR';
+            spinner.style.display = 'inline-block';
+            btn.style.backgroundColor = 'var(--danger-color)';
+            resultDiv.style.display = 'block';
+
+            // Run first check immediately
+            performMonitorCheck(urlInput);
+
+            // Poll every 2 seconds
+            monitorInterval = setInterval(() => performMonitorCheck(urlInput), 2000);
+        }
+
+        async function performMonitorCheck(url) {
+            const statusEl = document.getElementById('monStatus');
+            const latencyEl = document.getElementById('monLatency');
+            const timeEl = document.getElementById('monLastCheck');
+
+            // Send 1 request to check latency/avail
+            const payload = {
+                url: url,
+                requests: 1,
+                concurrency: 1
+            };
+
+            try {
+                const res = await fetch('/run-test', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                timeEl.innerText = new Date().toLocaleTimeString();
+
+                if (res.ok && !data.error && data.failed === 0) {
+                    statusEl.innerText = '🟢 ONLINE';
+                    statusEl.style.color = 'var(--success-color)';
+                    // Duration is in seconds, convert to ms
+                    const ms = Math.round(data.duration * 1000);
+                    latencyEl.innerText = ms + ' ms';
+                } else {
+                    statusEl.innerText = '🔴 OFFLINE';
+                    statusEl.style.color = 'var(--danger-color)';
+                    latencyEl.innerText = '--';
+                }
+
+            } catch (e) {
+                statusEl.innerText = '🔴 ERROR';
+                statusEl.style.color = 'var(--danger-color)';
             }
         }
 
