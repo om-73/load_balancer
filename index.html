@@ -417,7 +417,7 @@
 
             <div class="dashboard-grid">
                 <div class="dash-item">
-                    <span class="stat-label">RPS</span>
+                    <span class="stat-label" id="lblRPS">RPS</span>
                     <span class="dash-item-val rps" id="dashRPS">0.0</span>
                 </div>
                 <div class="dash-item">
@@ -591,6 +591,7 @@
         }
 
         let monitorInterval = null;
+        let monStats = { total: 0, success: 0, failed: 0 };
 
         async function toggleMonitor() {
             const btn = document.getElementById('monitorBtn');
@@ -598,6 +599,7 @@
             const spinner = document.getElementById('monitorSpinner');
             const resultDiv = document.getElementById('monitorResult');
             const urlInput = document.getElementById('liveUrl').value;
+            const liveTitle = document.querySelector('.card h2:contains("Live Dashboard")') || document.querySelector('.card h2'); // Fallback
 
             if (monitorInterval) {
                 // STOP Monitoring
@@ -606,6 +608,10 @@
                 btnText.innerText = 'START MONITOR';
                 spinner.style.display = 'none';
                 btn.style.backgroundColor = 'var(--warning-color)';
+
+                // Resume Local Polling
+                document.getElementById('lblRPS').innerText = "RPS"; // Reset Label
+                startPolling();
                 return;
             }
 
@@ -615,6 +621,12 @@
             }
 
             // START Monitoring
+            // Stop Local Polling
+            stopPolling();
+
+            // Reset local stats
+            monStats = { total: 0, success: 0, failed: 0 };
+
             btnText.innerText = 'STOP MONITOR';
             spinner.style.display = 'inline-block';
             btn.style.backgroundColor = 'var(--danger-color)';
@@ -648,17 +660,36 @@
 
                 timeEl.innerText = new Date().toLocaleTimeString();
 
+                monStats.total++;
+
                 if (res.ok && !data.error && data.failed === 0) {
+                    monStats.success++;
                     statusEl.innerText = '🟢 ONLINE';
                     statusEl.style.color = 'var(--success-color)';
                     // Duration is in seconds, convert to ms
                     const ms = Math.round(data.duration * 1000);
                     latencyEl.innerText = ms + ' ms';
+
+                    // Update Main Dashboard Header
+                    document.getElementById('dashRPS').innerText = ms + 'ms';
+                    document.getElementById('lblRPS').innerText = "LATENCY";
                 } else {
+                    monStats.failed++;
                     statusEl.innerText = '🔴 OFFLINE';
                     statusEl.style.color = 'var(--danger-color)';
                     latencyEl.innerText = '--';
+
+                    document.getElementById('dashRPS').innerText = "OFFLINE";
+                    document.getElementById('lblRPS').innerText = "STATUS";
                 }
+
+                // Update Main Dashboard Counts
+                document.getElementById('dashTotal').innerText = monStats.total;
+                document.getElementById('dashSuccess').innerText = monStats.success;
+                document.getElementById('dashFailed').innerText = monStats.failed;
+
+                // Clear/Hide Distribution since it's not applicable
+                document.getElementById('backendBars').innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--text-secondary);">Listening to ' + url + '</div>';
 
             } catch (e) {
                 statusEl.innerText = '🔴 ERROR';
