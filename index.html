@@ -160,6 +160,8 @@
             <span id="btnText">FIRE LOAD TEST</span>
         </button>
 
+        </button>
+
         <div id="result">
             <div class="stat"><span class="stat-label">Duration:</span><span class="stat-value" id="resDuration"></span>
             </div>
@@ -169,6 +171,24 @@
                     id="resSuccess"></span></div>
             <div class="stat"><span class="stat-label">Failed:</span><span class="stat-value fail"
                     id="resFailed"></span></div>
+        </div>
+
+        <h1 style="margin-top: 2rem;">📊 Live Dashboard</h1>
+        <div id="dashboard" style="width: 100%; background: #252526; padding: 1rem; border-radius: 8px;">
+            <div class="stat"><span class="stat-label">Total Requests:</span><span class="stat-value"
+                    id="dashTotal">0</span></div>
+            <div class="stat"><span class="stat-label">Success:</span><span class="stat-value success"
+                    id="dashSuccess">0</span></div>
+            <div class="stat"><span class="stat-label">Failed:</span><span class="stat-value fail"
+                    id="dashFailed">0</span></div>
+            <div class="stat"><span class="stat-label">RPS:</span><span class="stat-value rps" id="dashRPS">0.0</span>
+            </div>
+
+            <h3 style="margin-top: 1rem; color: #4CAF50; font-size: 0.9rem;">Backend Distribution</h3>
+            <div id="backendBars">
+                <!-- Bars will be injected here -->
+                <div style="color: #666; font-size: 0.8rem; text-align: center;">Waiting for data...</div>
+            </div>
         </div>
 
         <h1 style="margin-top: 2rem;">🔍 Port Scanner</h1>
@@ -268,6 +288,82 @@
                 btnText.innerText = 'SCAN PORTS';
             }
         }
+
+        // Dashboard Poller
+        async function fetchStats() {
+            try {
+                // Try Vercel path first, fallback to root if needed (handled by rewrites usually)
+                // In local dev without vercel CLI, we might need /stats
+                // We'll just try /stats which maps to /api/stats.py on Vercel via vercel.json rewrite
+                // But locally web_server.py needs to handle /stats
+
+                // Correction: locally web_server.py handles /stats.
+                // On Vercel, if we use /stats in fetch, we need vercel.json rewrite: source: /stats -> dest: /api/stats.py
+
+                const res = await fetch('/stats');
+                if (res.ok) {
+                    const data = await res.json();
+                    updateDashboard(data);
+                }
+            } catch (e) {
+                console.log("Stats poll fail", e);
+            }
+        }
+
+        function updateDashboard(data) {
+            document.getElementById('dashTotal').innerText = data.total_requests;
+            document.getElementById('dashSuccess').innerText = data.success_requests;
+            document.getElementById('dashFailed').innerText = data.failed_requests;
+            document.getElementById('dashRPS').innerText = data.rps.toFixed(1);
+
+            const barsContainer = document.getElementById('backendBars');
+            barsContainer.innerHTML = '';
+
+            const counts = data.backend_counts || {};
+            const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+            if (Object.keys(counts).length === 0) {
+                barsContainer.innerHTML = '<div style="color: #666; font-size: 0.8rem; text-align: center;">No traffic yet</div>';
+                return;
+            }
+
+            const max = Math.max(...Object.values(counts));
+
+            for (const [port, count] of Object.entries(counts)) {
+                const percentage = (count / max) * 100;
+
+                const row = document.createElement('div');
+                row.style.marginBottom = '8px';
+
+                const label = document.createElement('div');
+                label.style.display = 'flex';
+                label.style.justifyContent = 'space-between';
+                label.style.fontSize = '0.8rem';
+                label.style.marginBottom = '2px';
+                label.innerHTML = `<span style="color: #aaa">Port ${port}</span> <span>${count}</span>`;
+
+                const barBg = document.createElement('div');
+                barBg.style.background = '#444';
+                barBg.style.borderRadius = '4px';
+                barBg.style.height = '8px';
+                barBg.style.width = '100%';
+
+                const barFill = document.createElement('div');
+                barFill.style.background = '#4CAF50'; // Green
+                barFill.style.height = '100%';
+                barFill.style.borderRadius = '4px';
+                barFill.style.width = percentage + '%';
+                barFill.style.transition = 'width 0.5s ease-out';
+
+                barBg.appendChild(barFill);
+                row.appendChild(label);
+                row.appendChild(barBg);
+                barsContainer.appendChild(row);
+            }
+        }
+
+        // Poll every 1 second
+        setInterval(fetchStats, 1000);
     </script>
 
 </body>

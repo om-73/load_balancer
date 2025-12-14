@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import socket
+import re
 from load_generator import LoadGenerator
 
 PORT = 8000
@@ -21,7 +22,74 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/":
             self.path = "index.html"
             send_reset_signal()
+        
+        if self.path == "/stats":
+            stats = self.get_stats()
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(stats).encode())
+            return
+
         return http.server.SimpleHTTPRequestHandler.do_GET(self)
+
+    def get_stats(self):
+        # Default stats
+        stats = {
+            "total_requests": 0,
+            "success_requests": 0,
+            "failed_requests": 0,
+            "rps": 0.0,
+            "backend_counts": {}
+        }
+        
+        log_file = "lb.log"
+        if not os.path.exists(log_file):
+            return stats
+
+        try:
+            # Read last 1000 lines or sufficient amount to get current state
+            # For simplicity, we can read the whole file if small, or use tail logic. 
+            # Since this is a demo, let's just read the file.
+            with open(log_file, 'r') as f:
+                lines = f.readlines()
+            
+            # Simple parsing similar to visualizer.py
+            total = 0
+            success = 0
+            failed = 0
+            counts = {}
+            
+            # We can re-parse everything or just grep for "Stats" lines if valid.
+            # But the terminal visualizer parses stream.
+            # Let's do a quick pass.
+            
+            for line in lines:
+                if "Forwarding request to localhost:" in line:
+                    match = re.search(r"Forwarding request to localhost:(\d+)", line)
+                    if match:
+                        port = match.group(1)
+                        counts[port] = counts.get(port, 0) + 1
+                        total += 1
+                        success += 1
+                elif "No backend servers available" in line or "Error forwarding" in line:
+                    failed += 1
+                    total += 1
+            
+            # Calculate RPS (very rough estimate based on file update time? or just 0 for now)
+            # visualizer.py calculates it live.
+            # For this web demo, valid RPS is hard without keeping state in memory.
+            # We will just verify counts for now.
+            
+            stats["total_requests"] = total
+            stats["success_requests"] = success
+            stats["failed_requests"] = failed
+            stats["backend_counts"] = counts
+            
+        except Exception as e:
+            print(f"Error parsing log: {e}")
+            
+        return stats
 
     def do_POST(self):
         if self.path == "/run-test":
