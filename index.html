@@ -415,61 +415,63 @@
                     ✅ Works on Vercel
                 </p>
             </div>
-
-            <!-- Strategy Uploader -->
-            <div class="card">
-                <h2>📂 Load Balancing Strategy</h2>
-                <div class="input-group">
-                    <label>Upload .java File (Dynamic Load)</label>
-                    <input type="file" id="strategyFile" accept=".java">
-                </div>
-                <button onclick="uploadStrategy()" id="uploadBtn">
-                    <span class="spinner" id="uploadSpinner"></span>
-                    <span id="uploadBtnText">UPLOAD & DEPLOY</span>
-                </button>
-                <div id="uploadResult" class="results-box"
-                    style="display:none; text-align: center; color: var(--accent-color);"></div>
-                <p style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; margin-top: 1rem;">
-                    ⚠️ Requires Local Backend (Restart may be slow)
-                </p>
-            </div>
         </div>
 
-        <!-- Dashboard Section -->
+        <!-- Strategy Uploader -->
         <div class="card">
-            <h2>📊 Live Dashboard</h2>
-
-            <div class="dashboard-grid">
-                <div class="dash-item">
-                    <span class="stat-label" id="lblRPS">RPS</span>
-                    <span class="dash-item-val rps" id="dashRPS">0.0</span>
-                </div>
-                <div class="dash-item">
-                    <span class="stat-label">Total</span>
-                    <span class="dash-item-val" id="dashTotal">0</span>
-                </div>
-                <div class="dash-item">
-                    <span class="stat-label">Success</span>
-                    <span class="dash-item-val success" id="dashSuccess">0</span>
-                </div>
-                <div class="dash-item">
-                    <span class="stat-label">Failed</span>
-                    <span class="dash-item-val fail" id="dashFailed">0</span>
-                </div>
+            <h2>🧠 Custom Strategy</h2>
+            <div class="input-group">
+                <label>Upload Strategy (.java)</label>
+                <input type="file" id="stratFile" accept=".java"
+                    style="padding: 0.5rem; background: #21262d; border-radius: 4px; width: 100%;">
             </div>
+            <button onclick="uploadStrategy()" id="uploadBtn">
+                <span class="spinner" id="uploadSpinner"></span>
+                <span id="uploadBtnText">UPLOAD & APPLY</span>
+            </button>
+            <div id="uploadResult" class="results-box" style="white-space: pre-wrap;"></div>
+            <p
+                style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; margin-top: 1rem; margin-bottom: 0;">
+                ⚠️ Requires Local Backend
+            </p>
+        </div>
+    </div>
 
-            <h3 style="font-size: 1rem; margin-bottom: 1rem;">Backend Distribution</h3>
-            <div id="backendBars">
-                <div style="color: var(--text-secondary); font-size: 0.9rem; text-align: center; padding: 2rem;">
-                    Waiting for data...
-                </div>
+    <!-- Dashboard Section -->
+    <div class="card">
+        <h2>📊 Live Dashboard</h2>
+
+        <div class="dashboard-grid">
+            <div class="dash-item">
+                <span class="stat-label" id="lblRPS">RPS</span>
+                <span class="dash-item-val rps" id="dashRPS">0.0</span>
             </div>
-
-            <h3 style="font-size: 1rem; margin-bottom: 0.5rem; margin-top: 1.5rem;">Recent Activity</h3>
-            <div class="log-console" id="logConsole">
-                <div style="text-align: center; padding-top: 2rem;">Waiting for logs...</div>
+            <div class="dash-item">
+                <span class="stat-label">Total</span>
+                <span class="dash-item-val" id="dashTotal">0</span>
+            </div>
+            <div class="dash-item">
+                <span class="stat-label">Success</span>
+                <span class="dash-item-val success" id="dashSuccess">0</span>
+            </div>
+            <div class="dash-item">
+                <span class="stat-label">Failed</span>
+                <span class="dash-item-val fail" id="dashFailed">0</span>
             </div>
         </div>
+
+        <h3 style="font-size: 1rem; margin-bottom: 1rem;">Backend Distribution</h3>
+        <div id="backendBars">
+            <div style="color: var(--text-secondary); font-size: 0.9rem; text-align: center; padding: 2rem;">
+                Waiting for data...
+            </div>
+        </div>
+
+        <h3 style="font-size: 1rem; margin-bottom: 0.5rem; margin-top: 1.5rem;">Recent Activity</h3>
+        <div class="log-console" id="logConsole">
+            <div style="text-align: center; padding-top: 2rem;">Waiting for logs...</div>
+        </div>
+    </div>
 
     </div>
 
@@ -575,62 +577,6 @@
                 btn.disabled = false;
                 spinner.style.display = 'none';
                 btnText.innerText = 'TEST LIVE URL';
-            }
-        }
-
-        async function uploadStrategy() {
-            const fileInput = document.getElementById('strategyFile');
-            const file = fileInput.files[0];
-            const btn = document.getElementById('uploadBtn');
-            const spinner = document.getElementById('uploadSpinner');
-            const btnText = document.getElementById('uploadBtnText');
-            const resultDiv = document.getElementById('uploadResult');
-
-            if (!file) {
-                alert("Please select a .java file");
-                return;
-            }
-
-            // Read File
-            const reader = new FileReader();
-            reader.readAsText(file, "UTF-8");
-            reader.onload = async function (evt) {
-                const code = evt.target.result;
-                const filename = file.name;
-
-                // Send to backend
-                btn.disabled = true;
-                spinner.style.display = 'inline-block';
-                btnText.innerText = 'DEPLOYING...';
-                resultDiv.style.display = 'none';
-
-                const payload = {
-                    filename: filename,
-                    code: code
-                };
-
-                const endpoint = apiBase === "/" ? "/upload-strategy" : (apiBase + "/upload-strategy");
-
-                try {
-                    const res = await fetch(endpoint, {
-                        method: 'POST',
-                        body: JSON.stringify(payload)
-                    });
-                    const data = await res.json();
-
-                    if (!res.ok || data.error) throw new Error(data.error);
-
-                    resultDiv.innerText = "✅ Deployed: " + data.strategy;
-                    resultDiv.style.display = 'block';
-                    alert("Strategy Deployed Successfully!\n\nThe Load Balancer is restarting with " + data.strategy + ".");
-
-                } catch (e) {
-                    alert("Deploy Error: " + e.message);
-                } finally {
-                    btn.disabled = false;
-                    spinner.style.display = 'none';
-                    btnText.innerText = 'UPLOAD & DEPLOY';
-                }
             }
         }
 
@@ -785,6 +731,78 @@
             }
         }
 
+        async function uploadStrategy() {
+            const fileInput = document.getElementById('stratFile');
+            const btn = document.getElementById('uploadBtn');
+            const spinner = document.getElementById('uploadSpinner');
+            const resultDiv = document.getElementById('uploadResult');
+            const btnText = document.getElementById('uploadBtnText');
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert("Please select a .java file!");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            btn.disabled = true;
+            spinner.style.display = 'inline-block';
+            btnText.innerText = 'UPLOADING...';
+            resultDiv.style.display = 'none';
+
+            reader.onload = async function (e) {
+                const javaCode = e.target.result;
+                // Simple validation
+                if (!javaCode.includes("implements LoadBalancingStrategy")) {
+                    alert("Error: File must implement LoadBalancingStrategy interface!");
+                    btn.disabled = false;
+                    spinner.style.display = 'none';
+                    btnText.innerText = 'UPLOAD & APPLY';
+                    return;
+                }
+
+                // Ensure package is correct
+                let finalCode = javaCode;
+                if (!finalCode.includes("package com.loadbalancer;")) {
+                    finalCode = "package com.loadbalancer;\n" + finalCode;
+                }
+                // Ensure class name is CustomStrategy
+                finalCode = finalCode.replace(/public\s+class\s+\w+/, "public class CustomStrategy");
+
+                const payload = {
+                    code: finalCode
+                };
+
+                const endpoint = apiBase === "/" ? "/upload-strategy" : (apiBase + "/upload-strategy");
+
+                try {
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await res.json();
+
+                    if (!res.ok || data.error) {
+                        throw new Error(data.error || "Unknown error");
+                    }
+
+                    resultDiv.innerText = "✅ " + data.status;
+                    resultDiv.style.display = 'block';
+
+                } catch (err) {
+                    alert("Error uploading: " + err.message);
+                } finally {
+                    btn.disabled = false;
+                    spinner.style.display = 'none';
+                    btnText.innerText = 'UPLOAD & APPLY';
+                }
+            };
+
+            reader.readAsText(file);
+        }
+
         // Data Source Management
         let apiBase = "/";
 
@@ -829,182 +847,194 @@
                 console.error("Polling error (" + apiBase + "):", e);
                 setStatus('error');
             }
+        }
+        if (res.ok) {
+            const data = await res.json();
+            setStatus('ok');
+            updateDashboard(data);
+        } else {
+            setStatus('error');
+        }
+            } catch (e) {
+            console.error("Polling error:", e);
+            setStatus('error');
+        }
+        }
 
+        function updateDashboard(data) {
+            try {
+                if (!data) return;
 
-            function updateDashboard(data) {
-                try {
-                    if (!data) return;
+                // Update Counters
+                document.getElementById('dashTotal').innerText = data.total_requests || 0;
+                document.getElementById('dashSuccess').innerText = data.success_requests || 0;
+                document.getElementById('dashFailed').innerText = data.failed_requests || 0;
+                document.getElementById('dashRPS').innerText = (data.rps || 0).toFixed(1);
 
-                    // Update Counters
-                    document.getElementById('dashTotal').innerText = data.total_requests || 0;
-                    document.getElementById('dashSuccess').innerText = data.success_requests || 0;
-                    document.getElementById('dashFailed').innerText = data.failed_requests || 0;
-                    document.getElementById('dashRPS').innerText = (data.rps || 0).toFixed(1);
+                if (data.server_time) {
+                    document.getElementById('serverTime').innerText = data.server_time;
+                }
 
-                    if (data.server_time) {
-                        document.getElementById('serverTime').innerText = data.server_time;
-                    }
+                // Blink update tick
+                const tick = document.getElementById('updateTick');
+                if (tick) tick.style.opacity = tick.style.opacity === '0' ? '1' : '0';
 
-                    // Blink update tick
-                    const tick = document.getElementById('updateTick');
-                    if (tick) tick.style.opacity = tick.style.opacity === '0' ? '1' : '0';
-
-                    // Update Logs
-                    const logConsole = document.getElementById('logConsole');
-                    if (logConsole) {
-                        if (data.recent_logs && data.recent_logs.length > 0) {
-                            logConsole.innerHTML = '';
-                            data.recent_logs.forEach(log => {
-                                const div = document.createElement('div');
-                                div.className = 'log-entry';
-                                div.innerText = log;
-                                logConsole.appendChild(div);
-                            });
-                        } else if (!data.total_requests) {
-                            logConsole.innerHTML = '<div style="text-align: center; padding-top: 2rem;">No logs yet...</div>';
-                        }
-                    }
-
-                    // Update Backend Bars
-                    const barsContainer = document.getElementById('backendBars');
-                    if (!barsContainer) return;
-
-
-                    const counts = data.backend_counts || {};
-
-                    if (Object.keys(counts).length === 0) {
-                        // Check if we have logs but no counts? 
-                        // Just keep waiting message or "No Active Backends"
-                        if (data.total_requests > 0) {
-                            barsContainer.innerHTML = '<div style="color: #666; font-size: 0.9rem; text-align: center; padding: 1rem;">No active traffic data</div>';
-                        }
-                        return;
-                    }
-
-                    barsContainer.innerHTML = ''; // Clear only if we have new data to show
-
-                    // Debug: Show raw data if something is wrong
-                    const debugDiv = document.createElement('div');
-                    debugDiv.style.color = '#d29922'; // Warning color
-                    debugDiv.style.fontSize = '0.75rem';
-                    debugDiv.style.fontFamily = 'monospace';
-                    debugDiv.style.marginBottom = '1rem';
-                    debugDiv.innerText = "DEBUG Data: " + JSON.stringify(counts);
-                    barsContainer.appendChild(debugDiv);
-
-                    const max = Math.max(...Object.values(counts));
-
-                    for (const [port, count] of Object.entries(counts)) {
-                        const percentage = max > 0 ? (count / max) * 100 : 0;
-
-                        const row = document.createElement('div');
-                        row.style.marginBottom = '12px';
-
-                        const label = document.createElement('div');
-                        label.style.display = 'flex';
-                        label.style.justifyContent = 'space-between';
-                        label.style.fontSize = '0.85rem';
-                        label.style.marginBottom = '4px';
-                        label.innerHTML = `<span style="color: #8b949e">Port ${port}</span> <span style="font-family: monospace">${count}</span>`;
-
-                        const barBg = document.createElement('div');
-                        barBg.style.background = '#21262d';
-                        barBg.style.borderRadius = '4px';
-                        barBg.style.height = '8px';
-                        barBg.style.width = '100%';
-                        barBg.style.overflow = 'hidden';
-
-                        const barFill = document.createElement('div');
-                        barFill.style.background = 'linear-gradient(90deg, #2ea043, #3fb950)';
-                        barFill.style.height = '100%';
-                        barFill.style.borderRadius = '4px';
-                        barFill.style.width = percentage + '%';
-                        barFill.style.transition = 'width 0.5s ease-out';
-
-                        barBg.appendChild(barFill);
-                        row.appendChild(label);
-                        row.appendChild(barBg);
-                        barsContainer.appendChild(row);
-                    }
-
-                } catch (err) {
-                    console.error("Dashboard Update Error:", err);
-                    const errorBox = document.getElementById('errorBox');
-                    const errorMsg = document.getElementById('errorMsg');
-                    if (errorBox && errorMsg) {
-                        errorBox.style.display = 'block';
-                        errorMsg.innerText = "Dashboard JS Error: " + err.message;
+                // Update Logs
+                const logConsole = document.getElementById('logConsole');
+                if (logConsole) {
+                    if (data.recent_logs && data.recent_logs.length > 0) {
+                        logConsole.innerHTML = '';
+                        data.recent_logs.forEach(log => {
+                            const div = document.createElement('div');
+                            div.className = 'log-entry';
+                            div.innerText = log;
+                            logConsole.appendChild(div);
+                        });
+                    } else if (!data.total_requests) {
+                        logConsole.innerHTML = '<div style="text-align: center; padding-top: 2rem;">No logs yet...</div>';
                     }
                 }
-            }
 
-            let pollInterval;
-            let isConnected = true;
+                // Update Backend Bars
+                const barsContainer = document.getElementById('backendBars');
+                if (!barsContainer) return;
 
-            // Poll every 1 second
-            function startPolling() {
-                pollInterval = setInterval(fetchStats, 1000);
-                isConnected = true;
-                updateConnBtn();
-            }
 
-            function stopPolling() {
-                clearInterval(pollInterval);
-                isConnected = false;
-                updateConnBtn();
-                const el = document.getElementById('connStatus');
-                if (el) {
-                    el.innerText = '⏸️ Paused';
-                    el.style.color = '#8b949e';
-                }
-            }
+                const counts = data.backend_counts || {};
 
-            function toggleConnection() {
-                if (isConnected) {
-                    stopPolling();
-                } else {
-                    fetchStats(); // Immediate fetch
-                    startPolling();
-                }
-            }
-
-            function updateConnBtn() {
-                const btn = document.getElementById('connBtn');
-                if (btn) {
-                    btn.innerText = isConnected ? 'Disconnect' : 'Connect';
-                    btn.style.borderColor = isConnected ? '#f85149' : '#2ea043';
-                    btn.style.color = isConnected ? '#f85149' : '#2ea043';
-                }
-            }
-
-            startPolling();
-
-            // Immediate check on load
-            fetchStats();
-
-            // Sanity Check Alert
-            window.onload = function () {
-                setTimeout(() => {
-                    const status = document.getElementById('connStatus');
-                    if (status && status.innerText === 'Connecting...') {
-                        // Still connecting after 500ms?
-                        status.innerText = "⚠️ Connection Slow/Failed";
-                        status.style.color = 'red';
+                if (Object.keys(counts).length === 0) {
+                    // Check if we have logs but no counts? 
+                    // Just keep waiting message or "No Active Backends"
+                    if (data.total_requests > 0) {
+                        barsContainer.innerHTML = '<div style="color: #666; font-size: 0.9rem; text-align: center; padding: 1rem;">No active traffic data</div>';
                     }
-                }, 2000);
-            };
+                    return;
+                }
 
-            function setStatus(state) {
-                const el = document.getElementById('connStatus');
-                if (!el) return;
-                if (state === 'ok') {
-                    el.innerText = '✅ Live Connection';
-                    el.style.color = '#2ea043';
-                } else {
-                    el.innerText = '❌ Disconnected';
-                    el.style.color = '#f85149';
+                barsContainer.innerHTML = ''; // Clear only if we have new data to show
+
+                // Debug: Show raw data if something is wrong
+                const debugDiv = document.createElement('div');
+                debugDiv.style.color = '#d29922'; // Warning color
+                debugDiv.style.fontSize = '0.75rem';
+                debugDiv.style.fontFamily = 'monospace';
+                debugDiv.style.marginBottom = '1rem';
+                debugDiv.innerText = "DEBUG Data: " + JSON.stringify(counts);
+                barsContainer.appendChild(debugDiv);
+
+                const max = Math.max(...Object.values(counts));
+
+                for (const [port, count] of Object.entries(counts)) {
+                    const percentage = max > 0 ? (count / max) * 100 : 0;
+
+                    const row = document.createElement('div');
+                    row.style.marginBottom = '12px';
+
+                    const label = document.createElement('div');
+                    label.style.display = 'flex';
+                    label.style.justifyContent = 'space-between';
+                    label.style.fontSize = '0.85rem';
+                    label.style.marginBottom = '4px';
+                    label.innerHTML = `<span style="color: #8b949e">Port ${port}</span> <span style="font-family: monospace">${count}</span>`;
+
+                    const barBg = document.createElement('div');
+                    barBg.style.background = '#21262d';
+                    barBg.style.borderRadius = '4px';
+                    barBg.style.height = '8px';
+                    barBg.style.width = '100%';
+                    barBg.style.overflow = 'hidden';
+
+                    const barFill = document.createElement('div');
+                    barFill.style.background = 'linear-gradient(90deg, #2ea043, #3fb950)';
+                    barFill.style.height = '100%';
+                    barFill.style.borderRadius = '4px';
+                    barFill.style.width = percentage + '%';
+                    barFill.style.transition = 'width 0.5s ease-out';
+
+                    barBg.appendChild(barFill);
+                    row.appendChild(label);
+                    row.appendChild(barBg);
+                    barsContainer.appendChild(row);
+                }
+
+            } catch (err) {
+                console.error("Dashboard Update Error:", err);
+                const errorBox = document.getElementById('errorBox');
+                const errorMsg = document.getElementById('errorMsg');
+                if (errorBox && errorMsg) {
+                    errorBox.style.display = 'block';
+                    errorMsg.innerText = "Dashboard JS Error: " + err.message;
                 }
             }
+        }
+
+        let pollInterval;
+        let isConnected = true;
+
+        // Poll every 1 second
+        function startPolling() {
+            pollInterval = setInterval(fetchStats, 1000);
+            isConnected = true;
+            updateConnBtn();
+        }
+
+        function stopPolling() {
+            clearInterval(pollInterval);
+            isConnected = false;
+            updateConnBtn();
+            const el = document.getElementById('connStatus');
+            if (el) {
+                el.innerText = '⏸️ Paused';
+                el.style.color = '#8b949e';
+            }
+        }
+
+        function toggleConnection() {
+            if (isConnected) {
+                stopPolling();
+            } else {
+                fetchStats(); // Immediate fetch
+                startPolling();
+            }
+        }
+
+        function updateConnBtn() {
+            const btn = document.getElementById('connBtn');
+            if (btn) {
+                btn.innerText = isConnected ? 'Disconnect' : 'Connect';
+                btn.style.borderColor = isConnected ? '#f85149' : '#2ea043';
+                btn.style.color = isConnected ? '#f85149' : '#2ea043';
+            }
+        }
+
+        startPolling();
+
+        // Immediate check on load
+        fetchStats();
+
+        // Sanity Check Alert
+        window.onload = function () {
+            setTimeout(() => {
+                const status = document.getElementById('connStatus');
+                if (status && status.innerText === 'Connecting...') {
+                    // Still connecting after 500ms?
+                    status.innerText = "⚠️ Connection Slow/Failed";
+                    status.style.color = 'red';
+                }
+            }, 2000);
+        };
+
+        function setStatus(state) {
+            const el = document.getElementById('connStatus');
+            if (!el) return;
+            if (state === 'ok') {
+                el.innerText = '✅ Live Connection';
+                el.style.color = '#2ea043';
+            } else {
+                el.innerText = '❌ Disconnected';
+                el.style.color = '#f85149';
+            }
+        }
     </script>
 </body>
 

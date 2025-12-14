@@ -200,85 +200,6 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
-        elif self.path == "/upload-strategy":
-            try:
-                content_length = int(self.headers['Content-Length'])
-                # This is a specialized file upload handling. 
-                # For simplicity, we assume the body IS the file content (text/plain) or json with code.
-                # Let's support JSON {"filename": "...", "code": "..."}
-                
-                post_data = self.rfile.read(content_length)
-                data = json.loads(post_data)
-                
-                filename = data.get("filename")
-                code = data.get("code")
-                
-                if not filename or not code:
-                    raise Exception("Missing filename or code")
-                
-                # Security: Enforce directory and extension
-                if ".." in filename or not filename.endswith(".java"):
-                     raise Exception("Invalid filename. Must be .java and no path traversal.")
-                
-                # Save file
-                file_path = os.path.join("src/main/java/com/loadbalancer", filename)
-                with open(file_path, "w") as f:
-                    f.write(code)
-                
-                print(f"✅ Saved strategy to {file_path}")
-                
-                # Compile
-                print("Compiling...")
-                cmd = ["javac", "src/main/java/com/loadbalancer/" + filename]
-                subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-                
-                # Extract Class Name (assuming package com.loadbalancer)
-                class_name = "com.loadbalancer." + filename.replace(".java", "")
-                
-                # Save config
-                with open("current_strategy.txt", "w") as f:
-                    f.write(class_name)
-                    
-                print(f"✅ Config updated to {class_name}")
-
-                # Restart Java Server
-                # We kill the process containing "LoadBalancer". run_demo.sh loop is NOT infinite in current view?
-                # Actually, check run_demo.sh again. It runs `java ... &`. It does NOT loop.
-                # So if I kill it, it stays dead.
-                # I need to start it again?
-                # Or I can assume `run_demo.sh` logic needs to be robust. 
-                # Let's kill it and restart it using subprocess?
-                
-                # Kill existing
-                os.system("pkill -f 'java -cp src/main/java -Dstrategy.class'")
-                # Fallback kill if pkill pattern too specific
-                # os.system("pkill -9 -f LoadBalancer") 
-                
-                # Restart logic is tricky from Python as it needs to pipe logs.
-                # Simplest hack: The user's `run_demo.sh` might exit if java dies?
-                # Step 949 shows `wait` at the end. If I kill LBPID, `run_demo.sh` finishes.
-                
-                # So effectively, "Restart" means the user needs to restart the script, OR I handle it.
-                # User Requirement: "dashboard visualize ... after upload" implies automation.
-                # I will try to start the java process directly from here.
-                
-                # Command to start LB
-                cmd_run = f"java -cp src/main/java -Dstrategy.class={class_name} com.loadbalancer.LoadBalancer > lb.log 2>&1 &"
-                os.system(cmd_run)
-                
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({"status": "deployed", "strategy": class_name}).encode())
-                
-            except Exception as e:
-                print(f"❌ Upload Error: {e}")
-                self.send_response(500)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode())
         elif self.path == "/scan-ports":
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
@@ -307,8 +228,32 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
+                # 2. Recompile
+                # We need to compile everything including the new file
+                print("Compiling CustomStrategy...")
+                result = subprocess.run(["javac", "-d", "bin", src_path, "-cp", "src/main/java"], capture_output=True, text=True)
+                if result.returncode != 0:
+                     raise Exception("Compilation Failed:\n" + result.stderr)
+                
+                # 3. Restart Load Balancer (Soft Restart)
+                # The easiest way is to send a restart signal or just rely on the user to restart? 
+                # The User Request implies "upload... after that dashboard visualize". 
+                # So I should probably autoscript the restart.
+                # But the 'web_server' doesn't control `run_demo.sh`.
+                # I can perhaps spawn a new LoadBalancer process and kill the old one?
+                # Or simplified: Just return success and tell the UI to say "Restarting..."
+                # For this demo, let's assume I can trigger a restart script, OR just tell the user to restart.
+                # actually, step 66 says "Logic to Recompile and Restart".
+                
+                # Let's try to run a restart script
+                # background restart
+                subprocess.Popen(["./restart_lb.sh"])
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
-                self.wfile.write(json.dumps(response_data).encode())
+                self.wfile.write(json.dumps({"status": "Strategy Uploaded & Compiling. Restarting Service..."}).encode())
 
             except Exception as e:
                 self.send_response(500)

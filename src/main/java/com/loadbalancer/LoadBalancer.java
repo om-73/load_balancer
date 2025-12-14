@@ -73,17 +73,14 @@ public class LoadBalancer {
         }
 
         // LoadBalancingStrategy strategy = new RoundRobinStrategy();
-        // Dynamic Strategy Loading
+        // Dynamic Strategy Selection
         LoadBalancingStrategy strategy;
-        String strategyClass = System.getProperty("strategy.class", "com.loadbalancer.AdaptiveStrategy");
         try {
-            System.out.println("Loading strategy: " + strategyClass);
-            Class<?> clazz = Class.forName(strategyClass);
-            strategy = (LoadBalancingStrategy) clazz.getDeclaredConstructor().newInstance();
-            System.out.println("✅ Helper Strategy Loaded: " + strategy.getClass().getSimpleName());
+            Class<?> customClass = Class.forName("com.loadbalancer.CustomStrategy");
+            strategy = (LoadBalancingStrategy) customClass.getDeclaredConstructor().newInstance();
+            System.out.println("✨ Custom Strategy Loaded: " + customClass.getSimpleName());
         } catch (Exception e) {
-            System.err.println("❌ Failed to load strategy " + strategyClass + ", falling back to AdaptiveStrategy");
-            e.printStackTrace();
+            System.out.println("Using Default Adaptive Strategy (No Custom Strategy found)");
             strategy = new AdaptiveStrategy();
         }
 
@@ -97,6 +94,7 @@ public class LoadBalancer {
         // Optimizing with a Thread Pool
         java.util.concurrent.ExecutorService threadPool = java.util.concurrent.Executors.newCachedThreadPool();
 
+        // Final variable for lambda capture
         final LoadBalancingStrategy finalStrategy = strategy;
 
         // Start a listener for each port
