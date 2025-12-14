@@ -6,6 +6,10 @@
             "destination": "/api/scan.py"
         },
         {
+            "source": "/run-test",
+            "destination": "/api/run_test.py"
+        },
+        {
             "source": "/stats",
             "destination": "/api/stats.py"
         },
