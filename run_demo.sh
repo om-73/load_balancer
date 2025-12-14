@@ -6,7 +6,9 @@ cleanup() {
     echo ""
     echo "Stopping servers..."
     kill $PID1 $PID2 $PID3 $LBPID $TAIL_PID 2>/dev/null || true
-    rm backend1.log backend2.log backend3.log lb.log 2>/dev/null || true
+    rm backend1.log backend2.log backend3.log 2>/dev/null || true
+    # We keep lb.log for the web dashboard to consume even if this script stops
+    # rm lb.log 2>/dev/null || true
 }
 trap cleanup EXIT
 

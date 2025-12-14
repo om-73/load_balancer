@@ -39,7 +39,9 @@ public class ClientHandler implements Runnable {
 
                     // Connection successful
                     targetServer.incrementRequestCount();
+                    targetServer.incrementActiveRequests();
                     System.out.println("Forwarding request to " + targetServer);
+                    System.out.flush(); // Force write to log file for real-time dashboard
 
                     // Forwarding via Thread Pool
                     java.util.concurrent.Future<?> f1 = threadPool.submit(
@@ -58,6 +60,8 @@ public class ClientHandler implements Runnable {
                     long duration = System.currentTimeMillis() - startTime;
                     targetServer.recordLatency(duration);
                     success = true;
+                } finally {
+                    targetServer.decrementActiveRequests();
                 }
             } catch (IOException | InterruptedException e) {
                 System.err.println(

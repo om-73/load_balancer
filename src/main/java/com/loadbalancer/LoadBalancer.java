@@ -72,7 +72,8 @@ public class LoadBalancer {
             return;
         }
 
-        LoadBalancingStrategy strategy = new RoundRobinStrategy();
+        // LoadBalancingStrategy strategy = new RoundRobinStrategy();
+        LoadBalancingStrategy strategy = new AdaptiveStrategy();
 
         // Initialize and start Health Check Service
         HealthCheckService healthCheckService = new HealthCheckService(backendServers);

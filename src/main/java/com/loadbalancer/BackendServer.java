@@ -13,6 +13,7 @@ public class BackendServer {
     private int consecutiveFailures;
     private List<Long> failureTimestamps;
     private java.util.concurrent.atomic.AtomicInteger requestCount;
+    private java.util.concurrent.atomic.AtomicInteger activeRequests;
 
     // Metrics
     private int maxRPS;
@@ -33,7 +34,9 @@ public class BackendServer {
         this.failedChecks = 0;
         this.consecutiveFailures = 0;
         this.failureTimestamps = new ArrayList<>();
+        this.failureTimestamps = new ArrayList<>();
         this.requestCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        this.activeRequests = new java.util.concurrent.atomic.AtomicInteger(0);
 
         this.maxRPS = 0;
         this.maxRPSTimestamp = 0;
@@ -121,6 +124,18 @@ public class BackendServer {
         return requestCount.get();
     }
 
+    public void incrementActiveRequests() {
+        activeRequests.incrementAndGet();
+    }
+
+    public void decrementActiveRequests() {
+        activeRequests.decrementAndGet();
+    }
+
+    public int getActiveRequests() {
+        return activeRequests.get();
+    }
+
     public synchronized void recordLatency(long latency) {
         if (minLatency == -1 || latency < minLatency) {
             minLatency = latency;
@@ -173,6 +188,7 @@ public class BackendServer {
         }
 
         return host + ":" + port + " [Health: " + (isHealthy ? "UP" : "DOWN") +
+                ", Active: " + activeRequests.get() +
                 ", Req: " + requestCount.get() +
                 ", RPS Range: " + rpsStr +
                 ", Latency Range: " + latStr +

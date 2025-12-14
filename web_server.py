@@ -7,7 +7,13 @@ import socket
 import re
 from load_generator import LoadGenerator
 
+import time
+
 PORT = 8000
+
+# Global state for RPS calculation
+last_check_time = time.time()
+last_total_requests = 0
 
 def send_reset_signal():
     try:
@@ -23,10 +29,11 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
             self.path = "index.html"
             send_reset_signal()
         
-        if self.path == "/stats":
+        if self.path.startswith("/stats"):
             stats = self.get_stats()
             self.send_response(200)
-            self.send_header('Content-type', 'application/json')
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             self.end_headers()
             self.wfile.write(json.dumps(stats).encode())
             return
@@ -45,6 +52,7 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
         
         log_file = "lb.log"
         if not os.path.exists(log_file):
+            print(f"Debug: {log_file} not found")
             return stats
 
         try:
@@ -54,11 +62,17 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
             with open(log_file, 'r') as f:
                 lines = f.readlines()
             
+            # print(f"Debug: Read {len(lines)} lines from log")
+            
             # Simple parsing similar to visualizer.py
             total = 0
             success = 0
             failed = 0
             counts = {}
+            recent_logs = []
+            
+            # Global RPS state
+            global last_check_time, last_total_requests
             
             # We can re-parse everything or just grep for "Stats" lines if valid.
             # But the terminal visualizer parses stream.
@@ -75,16 +89,69 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 elif "No backend servers available" in line or "Error forwarding" in line:
                     failed += 1
                     total += 1
+                    recent_logs.append("❌ " + line.strip())
+                elif "Forwarding request" in line:
+                    # Optional: Add forwarding logs too, maybe just the last few
+                    # recent_logs.append("➡️ " + line.strip())
+                    pass
+
+            # Capture last 10 "Forwarding" or important lines for the visualizer
+            # Re-iterate or just capture during the first pass?
+            # Let's just grab the last 10 meaningful lines from the file end.
             
-            # Calculate RPS (very rough estimate based on file update time? or just 0 for now)
-            # visualizer.py calculates it live.
-            # For this web demo, valid RPS is hard without keeping state in memory.
-            # We will just verify counts for now.
+            meaningful_logs = []
+            for line in reversed(lines):
+                line = line.strip()
+                if not line: continue
+                if "Forwarding request" in line:
+                    meaningful_logs.append("➡️ " + line)
+                elif "status changed" in line:
+                    meaningful_logs.append("⚠️ " + line)
+                elif "No backend" in line:
+                    meaningful_logs.append("❌ NO BACKENDS AVAILABLE")
+                
+                if len(meaningful_logs) >= 10:
+                    break
+            
+            recent_logs = meaningful_logs # They are in reverse order
+            # Reverse back to normal chronological order
+            # But normally visualizer shows newest at bottom? Or top?
+            # Let's send them chronological
+            # recent_logs.reverse() -> No, let's keep newest at top for web or bottom?
+            # Let's send newest first (index 0) for easy display at top? 
+            # Or newest last? Terminal scrolls down. Web console usually new at bottom.
+            # So let's reverse them to be chronological [Oldest ... Newest]
+            recent_logs.reverse()
+            
+            # Calculate RPS
+            current_time = time.time()
+            time_diff = current_time - last_check_time
+            
+            # Only calculate if enough time has passed (e.g., > 0.5s) and we have new data
+            # OR if this is the first real check after some time.
+            # But the frontend polls every 1s.
+            
+            if time_diff > 0:
+                # Delta requests
+                delta_reqs = total - last_total_requests
+                # Only update RPS if delta is non-negative (log rotation/reset might cause negative)
+                if delta_reqs >= 0:
+                    stats["rps"] = delta_reqs / time_diff
+                else:
+                    stats["rps"] = 0.0
+            
+            # Update state for next call
+            last_check_time = current_time
+            last_total_requests = total
             
             stats["total_requests"] = total
             stats["success_requests"] = success
             stats["failed_requests"] = failed
             stats["backend_counts"] = counts
+            stats["recent_logs"] = recent_logs
+            stats["server_time"] = time.strftime("%H:%M:%S")
+            
+            # print(f"Debug: Stats parsed: {stats}")
             
         except Exception as e:
             print(f"Error parsing log: {e}")
@@ -102,7 +169,13 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 requests = int(data.get("requests", 100))
                 concurrency = int(data.get("concurrency", 10))
 
-                print(f"Triggering Load Test: {requests} to {url}")
+                # Safety: Cap concurrency to avoid "can't start new thread" errors
+                MAX_CONCURRENCY = 200
+                if concurrency > MAX_CONCURRENCY:
+                    print(f"⚠️ Capping concurrency from {concurrency} to {MAX_CONCURRENCY}")
+                    concurrency = MAX_CONCURRENCY
+
+                print(f"Triggering Load Test: {requests} to {url} with {concurrency} threads")
                 
                 # Run the load generator
                 generator = LoadGenerator(url, requests, concurrency)
@@ -116,8 +189,9 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 
             except Exception as e:
                 self.send_response(500)
+                self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(str(e).encode())
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
         elif self.path == "/scan-ports":
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
@@ -150,8 +224,9 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
 
             except Exception as e:
                 self.send_response(500)
+                self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(str(e).encode())
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
 
         else:
             self.send_error(404)
@@ -159,8 +234,12 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
 print(f"🌍 Web Interface running at http://localhost:{PORT}")
 print(f"Open your browser to start valid testing!")
 
-class ReusableTCPServer(socketserver.TCPServer):
+class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
+    daemon_threads = True
 
-with ReusableTCPServer(("", PORT), LoadTestHandler) as httpd:
+print(f"🌍 Web Interface running at http://localhost:{PORT}")
+print(f"Open your browser to start valid testing!")
+
+with ThreadedTCPServer(("", PORT), LoadTestHandler) as httpd:
     httpd.serve_forever()
