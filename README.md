@@ -1,69 +1,98 @@
-# ⚖️ Advanced Multi-threaded Load Balancer
+# ⚡️ Advanced Load Balancer (v3.3)
 
-A production-grade **Layer 4 Load Balancer** built from scratch in Java, featuring **Auto-Scaling**, **Fault Tolerance**, and **Real-Time Visualization**.
+A cloud-ready **Layer 4 Load Balancer** featuring a **Real-Time Web Dashboard**, **Adaptive Load Balancing Strategies**, and **Built-in Port Scanner**.
 
-![Load Balancer Logic](https://placehold.co/600x200?text=Java+Load+Balancer+v2.0)
+![Dashboard Preview](https://placehold.co/800x400?text=Web+Dashboard+v3.3)
 
-## 🚀 Key Features
+## 🚀 New in v3.0
 
-### 1. 📈 Auto-Scaling ("Port Increase")
-- **Intelligent Scaling**: The system monitors **Requests Per Second (RPS)** in real-time.
-- **Trigger**: If `Avg RPS > 10`, it automatically spawns a **new backend server** on the next available port (e.g., 9084, 9085...).
-- **Cooldown**: Prevents rapid-fire scaling with a 20-second cooldown period.
+*   **🖥️ Web Dashboard**: A beautiful, real-time HTML5/JS interface to monitor traffic, response times, and server health.
+*   **🧠 Adaptive Strategy**: Load balancing based on **Least Connections** and **Latency Constraints**, not just Round Robin.
+*   **🔍 Port Scanner**: Built-in tool to scan external hosts for open ports directly from the UI.
+*   **🛡️ Robust Logging**: Persistent logs (`lb.log`) that survive restarts for historical analysis.
 
-### 2. 🛡️ Fault Tolerance ("Prevent Failure")
-- **Automatic Retries**: If a backend server crashes or disconnects, the LB **automatically retries** the request on a different server (up to 3 times).
-- **Fast Failure Detection**: Instantly marks failed servers as `DOWN` to prevent further traffic distribution.
-- **Zero Downtime**: Clients experience seamless service even during backend failures.
+---
 
-### 3. 🔌 Multi-Port Listening
-- **Architecture**: The Load Balancer listens on **multiple ports simultaneously**: `8080`, `8081`, `8082`, `8083`.
-- **Unified Balancing**: Traffic from *any* of these ports is distributed across the *shared* pool of backend servers (9081+).
+## 🏗 Architecture
 
-### 4. 🎛️ Dynamic Control & Metrics
-- **Runtime Addition**: Add servers dynamically via the Control Port (8888).
-  - `echo "ADD localhost 9090" | nc localhost 8888`
-- **Precision Metrics**: Tracks Min/Max RPS and Latency with **timestamps**.
-  - Example: `Min Requests: Port 9084 (758) | Avg RPS: 15.2 (at 12:05:01)`
+The system consists of three main components:
 
-## 🛠 Tech Stack
+1.  **Java Load Balancer**: Multi-threaded core parsing traffic on `localhost:8080`.
+    *   *Strategies*: Round Robin, Adaptive (Least Conn).
+    *   *Fault Tolerance*: Retries failed requests automatically.
+2.  **Python Web Server**: Serves the dashboard (`localhost:8000`) and provides a JSON API (`/stats`, `/run-test`) by parsing the load balancer logs in real-time.
+3.  **Frontend**: A responsive web app (`index.html`) using Vanilla JS for zero-dependency speed.
 
-- **Core**: Java (Multithreaded, Socket Programming)
-- **Visualizer**: Python (Real-time Curses Dashboard)
-- **Scripting**: Bash (Orchestration)
+---
 
-## 🏃‍♂️ How to Run
+## 🏃‍♂️ Quick Start
 
-1. **Start the System**:
-   ```bash
-   ./start_all.sh
-   ```
-   *This compiles the code, starts 3 mock backends (9081-9083), launches the LB (8080-8083), and opens the dashboard.*
+### Prerequisites
+*   Java (JDK 8+)
+*   Python 3
+*   Bash (Mac/Linux)
 
-2. **Test Auto-Scaling**:
-   ```bash
-   # Blast the server with traffic
-   while true; do curl http://localhost:8080 > /dev/null; done
-   ```
-   *Watch the dashboard: You will see "🚀 Scaling up!" and a new backend (9084) will appear.*
+### One-Click Launch
+```bash
+./start_all.sh
+```
 
-3. **Test Fault Tolerance**:
-   ```bash
-   # Kill a backend (e.g., on port 9081)
-   kill <PID_OF_9081>
-   ```
-   *Send a request. It will succeed! The logs will show a seamless retry to another server.*
+This will:
+1.  Compile the Java Load Balancer.
+2.  Start 3 mock backend servers (Python) on ports 9081, 9082, 9083.
+3.  Launch the Load Balancer on port 8080.
+4.  Start the Web Dashboard on port 8000.
+
+**👉 Open [http://localhost:8000](http://localhost:8000) to view the dashboard.**
+
+---
+
+## 🕹 features & Usage
+
+### 1. 🔥 Load Testing
+*   Use the **"Load Launcher"** card on the dashboard.
+*   Set **Total Requests** (e.g., 1000) and **Concurrency** (e.g., 50).
+*   Click **FIRE LOAD TEST**.
+*   *Watch the bars dance!*
+
+### 2. 📊 Live Monitoring
+*   **RPS (Requests Per Second)**: Real-time throughput.
+*   **Backend Distribution**: Visual progress bars showing how traffic is split.
+    *   *Note: In Adaptive Mode, faster servers get more traffic!*
+*   **Recent Activity**: Live stream of "Forwarding..." events.
+
+### 3. 🔌 Port Scanning
+*   Enter a domain (e.g., `google.com`) in the **"Port Scanner"** card.
+*   Click **SCAN PORTS**.
+*   The system will check common ports (80, 443, 21, 22, etc.) and report status.
+
+### 4. 🎛️ Control
+*   **Disconnect/Pause**: Toggle the button in the header to pause dashboard updates.
+*   **Debug Mode**: If things go wrong, the dashboard dumps raw JSON data for easy debugging.
+
+---
 
 ## 📂 Project Structure
 
+```bash
+├── src/main/java/com/loadbalancer
+│   ├── LoadBalancer.java       # Main Loop & Socket Handling
+│   ├── AdaptiveStrategy.java   # Intelligent Routing Logic
+│   ├── ClientHandler.java      # Request Forwarding & Logging
+│   └── PortScanner.java        # Scanner Utility
+├── web_server.py               # Backend API & Static Server
+├── index.html                  # Frontend Dashboard
+├── load_generator.py           # Load Testing Tool
+├── run_demo.sh                 # Orchestrator
+└── start_all.sh                # Entry Point
 ```
-├── src/main/java    # Java Source Code
-│   ├── LoadBalancer.java       # Main Entry Point & Control Port
-│   ├── HealthCheckService.java # Auto-Scaling & Monitoring Logic
-│   ├── ClientHandler.java      # Fault Tolerant Request Forwarding
-│   ├── BackendServer.java      # Server State & Metrics
-│   └── ...
-├── visualizer.py    # Python Dashboard
-├── mock_server.py   # Python Mock Backend
-└── start_all.sh     # One-click startup
-```
+
+---
+
+## 🤝 Contributing
+1.  Fork the repo.
+2.  Run `./start_all.sh` to test your changes.
+3.  Submit a Pull Request.
+
+---
+*Built with ❤️ by Om Prakash Singh*
