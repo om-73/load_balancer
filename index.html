@@ -859,18 +859,7 @@
                 }
             }
         }
-        if (res.ok) {
-            const data = await res.json();
-            setStatus('ok');
-            updateDashboard(data);
-        } else {
-            setStatus('error');
-        }
-            } catch (e) {
-            console.error("Polling error:", e);
-            setStatus('error');
-        }
-        }
+
 
         function updateDashboard(data) {
             try {

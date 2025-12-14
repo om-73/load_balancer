@@ -34,6 +34,7 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*') 
+            self.send_header('Access-Control-Allow-Private-Network', 'true')
             self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             self.end_headers()
             self.wfile.write(json.dumps(stats).encode())
@@ -44,6 +45,7 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Private-Network', 'true')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
@@ -192,12 +194,16 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 # Respond
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Private-Network', 'true')
                 self.end_headers()
                 self.wfile.write(json.dumps(result).encode())
                 
             except Exception as e:
                 self.send_response(500)
                 self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Private-Network', 'true')
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
         elif self.path == "/scan-ports":
@@ -228,6 +234,7 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Private-Network', 'true')
                 self.end_headers()
                 self.wfile.write(json.dumps(response_data).encode())
 
@@ -235,6 +242,7 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(500)
                 self.send_header('Content-type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Private-Network', 'true')
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
 
@@ -265,6 +273,7 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Private-Network', 'true')
                 self.end_headers()
                 self.wfile.write(json.dumps({"status": "Strategy Uploaded & Compiling. Restarting Service..."}).encode())
 
@@ -274,6 +283,7 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(500)
                 self.send_header('Content-type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Private-Network', 'true')
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
 
