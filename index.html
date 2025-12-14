@@ -280,10 +280,13 @@
         <span style="margin: 0 10px;">•</span>
         <span>Source:
             <select id="dataSource" onchange="updateDataSource()"
-                style="background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.75rem;">
-                <option value="/">Cloud Demo (Vercel)</option>
-                <option value="http://localhost:8000">Localhost:8000</option>
+                style="background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.75rem; padding: 2px 4px;">
+                <option value="/">Cloud Demo</option>
+                <option value="custom">Custom IP...</option>
             </select>
+            <input type="text" id="customSourceInput" value="http://localhost:8000" placeholder="http://ip:port"
+                onchange="updateDataSource()"
+                style="display: none; width: 140px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.75rem; padding: 2px 5px;">
         </span>
         <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px;">
             <span id="connStatus" style="font-size: 0.75rem; color: #d29922;">Connecting...</span>
@@ -807,22 +810,33 @@
         let apiBase = "/";
 
         function updateDataSource() {
-            const val = document.getElementById('dataSource').value;
+            const select = document.getElementById('dataSource');
+            const input = document.getElementById('customSourceInput');
+            const val = select.value;
+
             if (val === "/") {
                 apiBase = "/";
-            } else {
-                // Must ensure no trailing slash logic issues, but localhost:8000 is fine
-                apiBase = val.replace(/\/$/, "");
+                input.style.display = 'none';
+            } else if (val === "custom") {
+                input.style.display = 'inline-block';
+                // Read from input, ensure no trailing slash
+                let raw = input.value.trim();
+                // Basic protocol check
+                if (!raw.startsWith("http")) raw = "http://" + raw;
+                apiBase = raw.replace(/\/$/, "");
             }
+
             console.log("Data Source Changed to:", apiBase);
             // Flash status
             const status = document.getElementById('connStatus');
             status.innerText = "Switching...";
-            document.getElementById('backendBars').innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--text-secondary);">Connecting to new source...</div>';
+            document.getElementById('backendBars').innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--text-secondary);">Connecting to ' + apiBase + '...</div>';
 
             // Allow mixed content if strictly needed (browser warning)
             if (window.location.protocol === 'https:' && apiBase.startsWith('http://')) {
-                alert("⚠️ Mixed Content Warning: You are on HTTPS (Vercel) trying to access HTTP (Localhost).\n\nIf it fails, check your browser address bar for the 'Shield' icon to 'Load Unsafe Scripts' or 'Allow Insecure Content'.");
+                // Trigger the error guide logic logic in fetchStats naturally, 
+                // or we can preemptively warn if we want.
+                // Let's rely on fetchStats error to show the box to keep it clean.
             }
         }
 
