@@ -168,6 +168,20 @@
             <div class="stat"><span class="stat-label">Failed:</span><span class="stat-value fail"
                     id="resFailed"></span></div>
         </div>
+
+        <h1 style="margin-top: 2rem;">🔍 Port Scanner</h1>
+        <div class="input-group">
+            <label>Target Host / URL</label>
+            <input type="text" id="scanHost" value="google.com">
+        </div>
+        <button onclick="scanPorts()" id="scanBtn">
+            <span class="spinner" id="scanSpinner"></span>
+            <span id="scanBtnText">SCAN PORTS</span>
+        </button>
+
+        <div id="scanResult"
+            style="margin-top: 2rem; padding: 1rem; border-radius: 8px; background: #252526; display: none; white-space: pre-wrap; font-family: monospace;">
+        </div>
     </div>
 
     <script>
@@ -211,6 +225,45 @@
                 btn.disabled = false;
                 spinner.style.display = 'none';
                 btnText.innerText = 'FIRE AGAIN';
+            }
+        }
+
+        async function scanPorts() {
+            const btn = document.getElementById('scanBtn');
+            const spinner = document.getElementById('scanSpinner');
+            const resultDiv = document.getElementById('scanResult');
+            const btnText = document.getElementById('scanBtnText');
+
+            btn.disabled = true;
+            spinner.style.display = 'inline-block';
+            btnText.innerText = 'SCANNING...';
+            resultDiv.style.display = 'none';
+            resultDiv.innerText = '';
+
+            const payload = {
+                host: document.getElementById('scanHost').value
+            };
+
+            try {
+                const res = await fetch('/scan-ports', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    throw new Error(await res.text());
+                }
+
+                const data = await res.json();
+                resultDiv.innerText = data.output;
+                resultDiv.style.display = 'block';
+
+            } catch (err) {
+                alert("Error scanning ports: " + err);
+            } finally {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.innerText = 'SCAN PORTS';
             }
         }
     </script>

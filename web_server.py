@@ -2,6 +2,7 @@ import http.server
 import socketserver
 import json
 import os
+import subprocess
 import socket
 from load_generator import LoadGenerator
 
@@ -49,6 +50,41 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(500)
                 self.end_headers()
                 self.wfile.write(str(e).encode())
+        elif self.path == "/scan-ports":
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            
+            try:
+                data = json.loads(post_data)
+                host_url = data.get("host", "google.com")
+                
+                # Run the Java port scanner
+                # We need to capture stdout
+                cmd = ["java", "-cp", "src/main/java", "com.loadbalancer.PortScanner", host_url]
+                process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                stdout, stderr = process.communicate()
+                
+                if process.returncode != 0:
+                    raise Exception(f"Scanner failed: {stderr}")
+                    
+                # The visualizer expects JSON or text. Let's return the raw output for now or parse it.
+                # The Java tool prints lines like "✅ Port 80 is OPEN"
+                # We can just return the raw text to be displayed.
+                
+                response_data = {
+                    "output": stdout
+                }
+
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(response_data).encode())
+
+            except Exception as e:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(str(e).encode())
+
         else:
             self.send_error(404)
 
