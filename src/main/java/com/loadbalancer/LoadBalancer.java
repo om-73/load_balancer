@@ -73,7 +73,19 @@ public class LoadBalancer {
         }
 
         // LoadBalancingStrategy strategy = new RoundRobinStrategy();
-        LoadBalancingStrategy strategy = new AdaptiveStrategy();
+        // Dynamic Strategy Loading
+        LoadBalancingStrategy strategy;
+        String strategyClass = System.getProperty("strategy.class", "com.loadbalancer.AdaptiveStrategy");
+        try {
+            System.out.println("Loading strategy: " + strategyClass);
+            Class<?> clazz = Class.forName(strategyClass);
+            strategy = (LoadBalancingStrategy) clazz.getDeclaredConstructor().newInstance();
+            System.out.println("✅ Helper Strategy Loaded: " + strategy.getClass().getSimpleName());
+        } catch (Exception e) {
+            System.err.println("❌ Failed to load strategy " + strategyClass + ", falling back to AdaptiveStrategy");
+            e.printStackTrace();
+            strategy = new AdaptiveStrategy();
+        }
 
         // Initialize and start Health Check Service
         HealthCheckService healthCheckService = new HealthCheckService(backendServers);
@@ -85,6 +97,8 @@ public class LoadBalancer {
         // Optimizing with a Thread Pool
         java.util.concurrent.ExecutorService threadPool = java.util.concurrent.Executors.newCachedThreadPool();
 
+        final LoadBalancingStrategy finalStrategy = strategy;
+
         // Start a listener for each port
         for (int port : listeningPorts) {
             new Thread(() -> {
@@ -92,7 +106,7 @@ public class LoadBalancer {
                     System.out.println("Listening on port " + port);
                     while (true) {
                         Socket clientSocket = serverSocket.accept();
-                        ClientHandler p = new ClientHandler(clientSocket, strategy, backendServers, threadPool);
+                        ClientHandler p = new ClientHandler(clientSocket, finalStrategy, backendServers, threadPool);
                         threadPool.submit(p);
                     }
                 } catch (IOException e) {
