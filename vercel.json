@@ -1,0 +1,13 @@
+{
+    "version": 2,
+    "rewrites": [
+        {
+            "source": "/scan-ports",
+            "destination": "/api/scan.py"
+        },
+        {
+            "source": "/",
+            "destination": "/index.html"
+        }
+    ]
+}
