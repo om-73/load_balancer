@@ -332,10 +332,43 @@
                     <div class="stat"><span class="stat-label">Failed:</span><span class="stat-value fail"
                             id="resFailed"></span></div>
                 </div>
-                <p
-                    style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; margin-top: 1rem; margin-bottom: 0;">
-                    ⚠️ Requires local backend
+                ✅ Supports Local (`localhost:8080`) and Internet (`google.com`)
                 </p>
+            </div>
+
+            <!-- Live URL Tester -->
+            <div class="card">
+                <h2>🌐 Live URL Tester</h2>
+                <div class="input-group">
+                    <label>Live URL (e.g. https://google.com)</label>
+                    <input type="text" id="liveUrl" value="" placeholder="https://google.com">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="input-group">
+                        <label>Requests</label>
+                        <input type="number" id="liveRequests" value="50">
+                    </div>
+                    <div class="input-group">
+                        <label>Concurrency</label>
+                        <input type="number" id="liveConcurrency" value="10">
+                    </div>
+                </div>
+                <button onclick="runLiveTest()" id="liveBtn">
+                    <span class="spinner" id="liveSpinner"></span>
+                    <span id="liveBtnText">TEST LIVE URL</span>
+                </button>
+
+                <div id="liveResult" class="results-box">
+                    <div class="stat"><span class="stat-label">Duration:</span><span class="stat-value"
+                            id="liveResDuration"></span></div>
+                    <div class="stat"><span class="stat-label">RPS:</span><span class="stat-value rps"
+                            id="liveResRPS"></span></div>
+                    <div style="height: 1px; background: var(--border-color); margin: 0.5rem 0;"></div>
+                    <div class="stat"><span class="stat-label">Success:</span><span class="stat-value success"
+                            id="liveResSuccess"></span></div>
+                    <div class="stat"><span class="stat-label">Failed:</span><span class="stat-value fail"
+                            id="liveResFailed"></span></div>
+                </div>
             </div>
 
             <!-- Port Scanner -->
@@ -440,7 +473,60 @@
             } finally {
                 btn.disabled = false;
                 spinner.style.display = 'none';
-                btnText.innerText = 'FIRE AGAIN';
+                btnText.innerText = 'FIRE LOAD TEST';
+            }
+        }
+
+        async function runLiveTest() {
+            const btn = document.getElementById('liveBtn');
+            const spinner = document.getElementById('liveSpinner');
+            const resultDiv = document.getElementById('liveResult');
+            const btnText = document.getElementById('liveBtnText');
+
+            const urlInput = document.getElementById('liveUrl').value;
+            if (!urlInput) {
+                alert("Please enter a URL!");
+                return;
+            }
+
+            // UI Loading State
+            btn.disabled = true;
+            spinner.style.display = 'inline-block';
+            btnText.innerText = 'TESTING...';
+            resultDiv.style.display = 'none';
+
+            const payload = {
+                url: urlInput,
+                requests: document.getElementById('liveRequests').value,
+                concurrency: document.getElementById('liveConcurrency').value || 10
+            };
+
+            try {
+                const res = await fetch('/run-test', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (!res.ok || data.error) {
+                    throw new Error(data.error || "Unknown server error");
+                }
+
+                // Show Result
+                document.getElementById('liveResDuration').innerText = data.duration.toFixed(2) + 's';
+                document.getElementById('liveResRPS').innerText = data.rps.toFixed(2);
+                document.getElementById('liveResSuccess').innerText = data.success;
+                document.getElementById('liveResFailed').innerText = data.failed;
+
+                resultDiv.style.display = 'block';
+
+            } catch (err) {
+                alert("Error running test: " + err.message);
+            } finally {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.innerText = 'TEST LIVE URL';
             }
         }
 
