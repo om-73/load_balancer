@@ -1052,6 +1052,13 @@ public class CustomStrategy implements LoadBalancingStrategy {
                             For security reasons, browsers <strong style="color:var(--danger-color)">BLOCK</strong> connections to Localhost.<br><br>
                             👉 <strong>Action Required:</strong> Please select "Custom IP" and use a Tunnel URL (e.g., ngrok/localhost.run) or run this dashboard locally.`;
                         }
+
+                        // Stop polling to prevent console spam
+                        if (pollInterval) {
+                            clearInterval(pollInterval);
+                            pollInterval = null;
+                            console.warn("⛔ Polling stopped due to Security Block.");
+                        }
                     }
                 }
             }
