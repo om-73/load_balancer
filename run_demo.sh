@@ -26,20 +26,12 @@ python3 mock_server.py 9083 > backend3.log 2>&1 &
 PID3=$!
 
 # Start LB
-echo "Starting Load Balancer..."
-# Read Strategy from file (if exists), default to AdaptiveStrategy
-STRATEGY_CLASS="com.loadbalancer.AdaptiveStrategy"
-if [ -f "current_strategy.txt" ]; then
-    STRATEGY_CLASS=$(cat current_strategy.txt)
-    echo "🔄 Configuration found: Using $STRATEGY_CLASS"
-fi
-
-# Start Load Balancer with dynamic strategy
-# Pass 8080..8083 ports if needed, but main() handles defaults
+echo "Starting Load Balancer on port 8080..."
 # We pipe stderr/stdout to lb.log AND also to the visualizer
 # But python buffering might be an issue. Using unbuffer (expect) would be nice, but maybe not available.
 # We will just tail -f the log file into the visualizer.
-java -cp src/main/java -Dstrategy.class="$STRATEGY_CLASS" com.loadbalancer.LoadBalancer > lb.log 2>&1 &
+
+java -cp src/main/java com.loadbalancer.LoadBalancer > lb.log 2>&1 &
 LBPID=$!
 
 # Wait for startup

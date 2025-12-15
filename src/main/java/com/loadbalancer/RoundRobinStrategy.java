@@ -7,7 +7,7 @@ public class RoundRobinStrategy implements LoadBalancingStrategy {
     private AtomicInteger counter = new AtomicInteger(0);
 
     @Override
-    public BackendServer getNextServer(List<BackendServer> servers) {
+    public BackendServer getNextServer(List<BackendServer> servers, String clientIp) {
         if (servers == null || servers.isEmpty()) {
             return null;
         }

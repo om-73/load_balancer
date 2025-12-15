@@ -8,7 +8,7 @@ public class AdaptiveStrategy implements LoadBalancingStrategy {
     private final RoundRobinStrategy roundRobin = new RoundRobinStrategy();
 
     @Override
-    public BackendServer getNextServer(List<BackendServer> servers) {
+    public BackendServer getNextServer(List<BackendServer> servers, String clientIp) {
         if (servers == null || servers.isEmpty()) {
             return null;
         }
@@ -64,7 +64,7 @@ public class AdaptiveStrategy implements LoadBalancingStrategy {
             return bestCandidates.get(0);
         } else {
             // We delegate to the internal RoundRobin strategy for the subset
-            return roundRobin.getNextServer(bestCandidates);
+            return roundRobin.getNextServer(bestCandidates, clientIp);
         }
     }
 }

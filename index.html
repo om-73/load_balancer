@@ -1003,14 +1003,23 @@ public class CustomStrategy implements LoadBalancingStrategy {
                 const res = await fetch(endpoint + '?t=' + Date.now());
                 if (res.ok) {
                     const data = await res.json();
-                    setStatus('ok');
+
+                    // Logic for explicit states
+                    if (!data) {
+                        setConnectionState('UNREACHABLE');
+                    } else if (data.total_requests === 0) {
+                        setConnectionState('NO_TRAFFIC');
+                    } else {
+                        setConnectionState('CONNECTED');
+                    }
+
                     updateDashboard(data);
                 } else {
-                    setStatus('error');
+                    setConnectionState('UNREACHABLE');
                 }
             } catch (e) {
                 console.error("Polling error (" + apiBase + "):", e);
-                setStatus('error');
+                setConnectionState('UNREACHABLE');
 
                 // Show guide if Mixed Content suspected
                 if (apiBase.startsWith("http://") && window.location.protocol === "https:") {
@@ -1218,15 +1227,33 @@ public class CustomStrategy implements LoadBalancingStrategy {
             }, 2000);
         };
 
-        function setStatus(state) {
-            const el = document.getElementById('connStatus');
-            if (!el) return;
-            if (state === 'ok') {
-                el.innerText = '✅ Live Connection';
-                el.style.color = '#2ea043';
-            } else {
-                el.innerText = '❌ Disconnected';
-                el.style.color = '#f85149';
+        function setConnectionState(state) {
+            const statusBadge = document.getElementById('connStatus');
+            const barsContainer = document.getElementById('backendBars');
+
+            // defined states
+            const STATES = {
+                'CONNECTED': { text: '🟢 CONNECTED', color: 'var(--success-color)' },
+                'NO_TRAFFIC': { text: '🟡 NO TRAFFIC', color: '#e3b341' },
+                'UNREACHABLE': { text: '🔴 UNREACHABLE', color: 'var(--danger-color)' }
+            };
+
+            const currentState = STATES[state] || STATES['UNREACHABLE'];
+
+            if (statusBadge) {
+                statusBadge.innerText = currentState.text;
+                statusBadge.style.color = currentState.color;
+                statusBadge.style.background = `rgba(0,0,0,0.2)`;
+                statusBadge.style.padding = '4px 8px';
+                statusBadge.style.borderRadius = '4px';
+            }
+
+            // Enforce Graph Visibility Rule
+            if (state === 'UNREACHABLE' && barsContainer) {
+                barsContainer.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--danger-color); opacity: 0.8;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔌 Connection Lost</div>
+                    <div>Cannot reach Load Balancer API</div>
+                </div>`;
             }
         }
     </script>

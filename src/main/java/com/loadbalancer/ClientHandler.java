@@ -26,7 +26,8 @@ public class ClientHandler implements Runnable {
 
         while (attempts < maxRetries && !success) {
             attempts++;
-            BackendServer targetServer = strategy.getNextServer(backendServers);
+            String clientIp = clientSocket.getInetAddress().getHostAddress();
+            BackendServer targetServer = strategy.getNextServer(backendServers, clientIp);
 
             if (targetServer == null) {
                 System.err.println("No backend servers available.");
