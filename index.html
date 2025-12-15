@@ -434,7 +434,8 @@
                     Mode:</label>
                 <select id="stratTemplate" onchange="loadTemplate()"
                     style="width: 100%; padding: 8px; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; border-radius: 6px; margin-bottom: 10px;">
-                    <option value="round-robin">Round Robin (Default)</option>
+                    <option value="round_robin">Round Robin (Basic)</option>
+                    <option value="consistent_hashing">Consistent Hashing (Serverless Optimized)</option>
                     <option value="random">Random Selection</option>
                     <option value="weighted">Weighted (Port 9081 Heavy)</option>
                 </select>
@@ -1067,11 +1068,15 @@ public class CustomStrategy implements LoadBalancingStrategy {
                 const counts = data.backend_counts || {};
 
                 if (Object.keys(counts).length === 0) {
-                    // Check if we have logs but no counts? 
-                    // Just keep waiting message or "No Active Backends"
-                    if (data.total_requests > 0) {
-                        barsContainer.innerHTML = '<div style="color: #666; font-size: 0.9rem; text-align: center; padding: 1rem;">No active traffic data</div>';
-                    }
+                    // Empty state (Cloud Mode without Tunnel)
+                    barsContainer.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary); opacity: 0.7;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📡</div>
+                            <div>Waiting for Traffic...</div>
+                            <div style="font-size: 0.75rem; margin-top: 0.5rem;">
+                                If running on Cloud (Vercel), ensure you have connected to your Localhost via Tunnel.
+                            </div>
+                        </div>`;
                     return;
                 }
 
