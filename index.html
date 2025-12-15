@@ -588,6 +588,14 @@ public class CustomStrategy implements LoadBalancingStrategy {
                 return;
             }
 
+            // GUARD: Strict Block of Localhost from HTTPS
+            if (window.location.protocol === 'https:' &&
+                (urlInput.includes('localhost') || urlInput.includes('127.0.0.1')) &&
+                urlInput.startsWith('http:')) {
+                alert("⛔ SECURITY BLOCK: You cannot test 'localhost' from a secure Cloud deployment.\n\nPlease use the 'Network Load Tester' with a public Tunnel URL or run the dashboard locally.");
+                return;
+            }
+
             // UI Loading State
             btn.disabled = true;
             spinner.style.display = 'inline-block';
@@ -700,6 +708,15 @@ public class CustomStrategy implements LoadBalancingStrategy {
 
             if (!urlInput) {
                 alert("Please enter a URL!");
+                return;
+            }
+
+            // GUARD: Strict Block of Localhost from HTTPS for Monitor
+            if (window.location.protocol === 'https:' &&
+                (urlInput.includes('localhost') || urlInput.includes('127.0.0.1')) &&
+                urlInput.startsWith('http:')) {
+
+                alert("⛔ SECURITY BLOCK: Browsers block unencrypted local connections from secure cloud pages.\n\nUse your LAN IP (e.g., 192.168.x.x) if possible, or a Tunnel URL.");
                 return;
             }
 
@@ -1021,15 +1038,21 @@ public class CustomStrategy implements LoadBalancingStrategy {
                 console.error("Polling error (" + apiBase + "):", e);
                 setConnectionState('UNREACHABLE');
 
-                // Show guide if Mixed Content suspected
+                // Strict Mixed Content Guard
                 if (apiBase.startsWith("http://") && window.location.protocol === "https:") {
-                    const errBox = document.getElementById('errorBox');
-                    const errMsg = document.getElementById('errorMsg');
-                    errBox.style.display = 'block';
-                    errMsg.innerHTML = `<strong>🔒 Connection Blocked (Mixed Content)</strong><br>
-                     Your browser is blocking the connection to <b>Localhost</b> because this page is on <b>HTTPS</b>.<br><br>
-                     👉 <strong>Solution:</strong> Look for a <b>Shield Icon</b> or <b>Lock Icon</b> in your address bar URL, click it, and select <b>"Allow Insecure Content"</b> or <b>"Disable Protection for keeping me safe"</b> (temporary).<br>
-                     <br><em>Alternative: Run the dashboard locally at <a href="http://localhost:8000" style="color:var(--text-primary)">http://localhost:8000</a></em>`;
+                    // Detect if target is Localhost
+                    const url = new URL(apiBase);
+                    if (['localhost', '127.0.0.1'].includes(url.hostname)) {
+                        const errBox = document.getElementById('errorBox');
+                        const errMsg = document.getElementById('errorMsg');
+                        if (errBox) {
+                            errBox.style.display = 'block';
+                            errMsg.innerHTML = `<strong>⛔ Protected Environment</strong><br>
+                            You are running this dashboard securely on the Cloud (HTTPS).<br>
+                            For security reasons, browsers <strong style="color:var(--danger-color)">BLOCK</strong> connections to Localhost.<br><br>
+                            👉 <strong>Action Required:</strong> Please select "Custom IP" and use a Tunnel URL (e.g., ngrok/localhost.run) or run this dashboard locally.`;
+                        }
+                    }
                 }
             }
         }
