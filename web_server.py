@@ -287,6 +287,29 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
 
+        elif self.path == "/network-ip":
+            try:
+                # Find local IP
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                # Doesn't actually connect, just determines route
+                s.connect(("8.8.8.8", 80))
+                local_ip = s.getsockname()[0]
+                s.close()
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Private-Network', 'true')
+                self.end_headers()
+                self.wfile.write(json.dumps({"ip": local_ip}).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Private-Network', 'true')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e), "ip": "127.0.0.1"}).encode())
+
         else:
             self.send_error(404)
 

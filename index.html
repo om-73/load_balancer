@@ -347,10 +347,10 @@
 
             <!-- Live URL Tester -->
             <div class="card">
-                <h2>🌐 Live URL Tester</h2>
+                <h2>🌐 Network Load Tester</h2>
                 <div class="input-group">
-                    <label>Live URL (e.g. https://google.com)</label>
-                    <input type="text" id="liveUrl" value="" placeholder="https://google.com">
+                    <label>Target URL (Local IP or Public)</label>
+                    <input type="text" id="liveUrl" value="" placeholder="e.g. http://192.168.1.5:3000">
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="input-group">
@@ -422,17 +422,64 @@
 
         <!-- Strategy Uploader -->
         <div class="card">
-            <h2>🧠 Custom Strategy</h2>
-            <div class="input-group">
-                <label>Upload Strategy (.java)</label>
-                <input type="file" id="stratFile" accept=".java"
-                    style="padding: 0.5rem; background: #21262d; border-radius: 4px; width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.2rem;">🧠</span> Strategy Editor
+                </h3>
+                <span class="status-badge" style="background: rgba(56, 139, 253, 0.15); color: #58a6ff;">JAVA</span>
             </div>
-            <button onclick="uploadStrategy()" id="uploadBtn">
-                <span class="spinner" id="uploadSpinner"></span>
-                <span id="uploadBtnText">UPLOAD & APPLY</span>
-            </button>
-            <div id="uploadResult" class="results-box" style="white-space: pre-wrap;"></div>
+
+            <div style="margin-bottom: 1rem;">
+                <label style="font-size: 0.75rem; color: #8b949e; display: block; margin-bottom: 4px;">Select
+                    Mode:</label>
+                <select id="stratTemplate" onchange="loadTemplate()"
+                    style="width: 100%; padding: 8px; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; border-radius: 6px; margin-bottom: 10px;">
+                    <option value="round-robin">Round Robin (Default)</option>
+                    <option value="random">Random Selection</option>
+                    <option value="weighted">Weighted (Port 9081 Heavy)</option>
+                </select>
+
+                <div style="text-align: right; margin-bottom: 5px;">
+                    <a href="#" onclick="toggleCode(); return false;" id="toggleCodeBtn"
+                        style="font-size: 0.75rem; color: #58a6ff; text-decoration: none;">Show Code 🔽</a>
+                </div>
+
+                <textarea id="stratCode" spellcheck="false"
+                    style="display: none; width: 100%; height: 200px; background: #0d1117; border: 1px solid #30363d; color: #e6edf3; font-family: monospace; padding: 10px; border-radius: 6px; font-size: 0.85rem; line-height: 1.4; resize: vertical;">
+package com.loadbalancer;
+import java.util.List;
+
+public class CustomStrategy implements LoadBalancingStrategy {
+    private int counter = 0;
+
+    @Override
+    public BackendServer getNextServer(List<BackendServer> servers) {
+        if (servers.isEmpty()) return null;
+        // Simple Round Robin
+        int index = counter % servers.size();
+        counter++;
+        return servers.get(index);
+    }
+}</textarea>
+            </div>
+
+            <div
+                style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.75rem; color: #8b949e;">
+                <strong>How to use:</strong> Edit the Java code above. The class name must be
+                <code>CustomStrategy</code>.
+                Click <strong>Apply</strong> to compile and hot-swap the load balancer.
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button id="uploadBtn" onclick="uploadStrategy()"
+                    style="flex: 1; background: #238636; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span id="uploadSpinner" class="spinner" style="display: none;"></span>
+                    <span id="uploadBtnText">APPLY STRATEGY</span>
+                </button>
+            </div>
+            <div id="uploadResult"
+                style="margin-top: 10px; padding: 10px; border-radius: 6px; background: rgba(56, 139, 253, 0.1); color: #58a6ff; font-size: 0.8rem; display: none;">
+            </div>
             <p
                 style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; margin-top: 1rem; margin-bottom: 0;">
                 ⚠️ Requires Local Backend
@@ -634,7 +681,7 @@
             const spinner = document.getElementById('monitorSpinner');
             const resultDiv = document.getElementById('monitorResult');
             const urlInput = document.getElementById('liveUrl').value;
-            const liveTitle = document.querySelector('.card h2:contains("Live Dashboard")');
+            const liveTitle = document.querySelector('#liveCard h2');
 
             if (monitorInterval) {
                 // STOP Monitoring
@@ -734,80 +781,169 @@
             }
         }
 
+        const TEMPLATES = {
+            "round-robin": `package com.loadbalancer;
+import java.util.List;
+
+public class CustomStrategy implements LoadBalancingStrategy {
+    private int counter = 0;
+
+    @Override
+    public BackendServer getNextServer(List<BackendServer> servers) {
+        if (servers.isEmpty()) return null;
+        // Simple Round Robin
+        int index = counter % servers.size();
+        counter++;
+        return servers.get(index);
+    }
+}`,
+            "random": `package com.loadbalancer;
+import java.util.List;
+import java.util.Random;
+
+public class CustomStrategy implements LoadBalancingStrategy {
+    private Random random = new Random();
+
+    @Override
+    public BackendServer getNextServer(List<BackendServer> servers) {
+        if (servers.isEmpty()) return null;
+        return servers.get(random.nextInt(servers.size()));
+    }
+}`,
+            "weighted": `package com.loadbalancer;
+import java.util.List;
+
+public class CustomStrategy implements LoadBalancingStrategy {
+    private int counter = 0;
+
+    @Override
+    public BackendServer getNextServer(List<BackendServer> servers) {
+        if (servers.isEmpty()) return null;
+        
+        // Weighted: Send 50% traffic to first server
+        counter++;
+        if (counter % 2 == 0) {
+            return servers.get(0); 
+        }
+        
+        // Distribute rest
+        return servers.get(counter % servers.size());
+    }
+}`
+        };
+
+        function loadTemplate() {
+            const key = document.getElementById('stratTemplate').value;
+            if (TEMPLATES[key]) {
+                document.getElementById('stratCode').value = TEMPLATES[key];
+            }
+        }
+
+        function toggleCode() {
+            const el = document.getElementById('stratCode');
+            const btn = document.getElementById('toggleCodeBtn');
+            if (el.style.display === 'none') {
+                el.style.display = 'block';
+                btn.innerText = 'Hide Code 🔼';
+            } else {
+                el.style.display = 'none';
+                btn.innerText = 'Show Code 🔽';
+            }
+        }
+
         async function uploadStrategy() {
-            const fileInput = document.getElementById('stratFile');
             const btn = document.getElementById('uploadBtn');
             const spinner = document.getElementById('uploadSpinner');
-            const resultDiv = document.getElementById('uploadResult');
             const btnText = document.getElementById('uploadBtnText');
-
-            if (!fileInput.files || fileInput.files.length === 0) {
-                alert("Please select a .java file!");
-                return;
-            }
-
-            const file = fileInput.files[0];
-            const reader = new FileReader();
+            const resultDiv = document.getElementById('uploadResult');
+            const codeVal = document.getElementById('stratCode').value;
 
             btn.disabled = true;
             spinner.style.display = 'inline-block';
-            btnText.innerText = 'UPLOADING...';
+            btnText.innerText = 'COMPILING...';
             resultDiv.style.display = 'none';
 
-            reader.onload = async function (e) {
-                const javaCode = e.target.result;
-                // Simple validation
-                if (!javaCode.includes("implements LoadBalancingStrategy")) {
-                    alert("Error: File must implement LoadBalancingStrategy interface!");
-                    btn.disabled = false;
-                    spinner.style.display = 'none';
-                    btnText.innerText = 'UPLOAD & APPLY';
-                    return;
-                }
+            // Validation
+            if (!codeVal.includes("implements LoadBalancingStrategy")) {
+                alert("Error: Code must implement LoadBalancingStrategy interface!");
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.innerText = 'APPLY STRATEGY';
+                return;
+            }
 
-                // Ensure package is correct
-                let finalCode = javaCode;
-                if (!finalCode.includes("package com.loadbalancer;")) {
-                    finalCode = "package com.loadbalancer;\n" + finalCode;
-                }
-                // Ensure class name is CustomStrategy
-                finalCode = finalCode.replace(/public\s+class\s+\w+/, "public class CustomStrategy");
+            // Ensure package is correct logic moved to server or pre-filled
+            // Check basic package presence
+            let finalCode = codeVal;
+            if (!finalCode.includes("package com.loadbalancer;")) {
+                finalCode = "package com.loadbalancer;\n" + finalCode;
+            }
 
-                const payload = {
-                    code: finalCode
-                };
-
-                const endpoint = apiBase === "/" ? "/upload-strategy" : (apiBase + "/upload-strategy");
-
-                try {
-                    const res = await fetch(endpoint, {
-                        method: 'POST',
-                        body: JSON.stringify(payload)
-                    });
-
-                    const data = await res.json();
-
-                    if (!res.ok || data.error) {
-                        throw new Error(data.error || "Unknown error");
-                    }
-
-                    resultDiv.innerText = "✅ " + data.status;
-                    resultDiv.style.display = 'block';
-
-                } catch (err) {
-                    alert("Error uploading: " + err.message);
-                } finally {
-                    btn.disabled = false;
-                    spinner.style.display = 'none';
-                    btnText.innerText = 'UPLOAD & APPLY';
-                }
+            const payload = {
+                code: finalCode
             };
 
-            reader.readAsText(file);
+            const endpoint = apiBase === "/" ? "/upload-strategy" : (apiBase + "/upload-strategy");
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (!res.ok || data.error) {
+                    throw new Error(data.error || "Unknown error");
+                }
+
+                resultDiv.innerText = "✅ " + data.status;
+                resultDiv.style.display = 'block';
+
+            } catch (err) {
+                alert("Error uploading: " + err.message);
+                resultDiv.innerText = "❌ Error: " + err.message;
+                resultDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.innerText = 'APPLY STRATEGY';
+            }
         }
 
         // Data Source Management
         let apiBase = "/";
+
+        // Deployment Detection Logic
+        function checkEnvironment() {
+            const host = window.location.hostname;
+            const isLocal = host === "localhost" || host === "127.0.0.1";
+
+            if (!isLocal) {
+                console.log("🌍 Detected Deployment Environment");
+                // Switch to Custom Mode automatically
+                const select = document.getElementById('dataSource');
+                const input = document.getElementById('customSourceInput');
+
+                // Select Custom
+                select.value = "custom";
+                // Show Input
+                input.style.display = 'inline-block';
+                // Default to localhost for ease, but user might need tunnel
+                // We leave it as the default value in HTML (http://localhost:8000)
+
+                // Trigger update
+                updateDataSource();
+
+                // Show Deployment Guide Alert
+                setTimeout(() => {
+                    const status = document.getElementById('connStatus');
+                    status.innerText = "⚠️ Setup Required";
+                    status.style.color = '#d29922';
+                    alert("🌍 Deployment Detected!\n\nSince this is running on the Cloud (Vercel), it cannot see your Localhost automatically.\n\n👉 Option 1: Use the Tunnel URL (from ./expose_local.sh)\n👉 Option 2: Use 'http://localhost:8000' but you MUST allow Insecure/Mixed Content in your browser settings.");
+                }, 1000);
+            }
+        }
 
         function updateDataSource() {
             const select = document.getElementById('dataSource');
@@ -832,12 +968,8 @@
             status.innerText = "Switching...";
             document.getElementById('backendBars').innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--text-secondary);">Connecting to ' + apiBase + '...</div>';
 
-            // Allow mixed content if strictly needed (browser warning)
-            if (window.location.protocol === 'https:' && apiBase.startsWith('http://')) {
-                // Trigger the error guide logic logic in fetchStats naturally, 
-                // or we can preemptively warn if we want.
-                // Let's rely on fetchStats error to show the box to keep it clean.
-            }
+            // Immediately try to fetch with new base
+            fetchStats();
         }
 
         // Dashboard Poller
@@ -1023,8 +1155,33 @@
 
         startPolling();
 
+
         // Immediate check on load
         fetchStats();
+
+        // Initialize
+        if (typeof loadTemplate === 'function') loadTemplate();
+        if (typeof checkEnvironment === 'function') checkEnvironment();
+
+        // 📍 Auto-fetch Local IP for convenience
+        async function fetchLocalIp() {
+            try {
+                const endpoint = apiBase === "/" ? "/network-ip" : (apiBase + "/network-ip");
+                const res = await fetch(endpoint, { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.ip) {
+                        const target = "http://" + data.ip + ":8080";
+                        document.getElementById('liveUrl').value = target;
+                        console.log("📍 Auto-detected Local IP:", target);
+                    }
+                }
+            } catch (e) {
+                console.log("Could not fetch local IP, using default.");
+            }
+        }
+        // Run it
+        fetchLocalIp();
 
         // Sanity Check Alert
         window.onload = function () {
