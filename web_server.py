@@ -1,3 +1,4 @@
+```
 import http.server
 import socketserver
 import json
@@ -9,7 +10,9 @@ from load_generator import LoadGenerator
 
 import time
 
-PORT = 8000
+# Render provides the PORT environment variable
+PORT = int(os.environ.get("PORT", 8000))
+SERVICE_PORT = 9081 # Not used directly but good to track
 
 # Global state for RPS calculation
 last_check_time = time.time()
