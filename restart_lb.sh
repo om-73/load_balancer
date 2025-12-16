@@ -1,4 +1,7 @@
 #!/bin/bash
+# Redirect all output to stdout for Render logging visibility, PLUS tee to lb.log
+exec > >(tee -a lb.log) 2>&1
+
 echo "🔄 Hot Swapping Load Balancer..."
 
 # Find PID of Java LoadBalancer process

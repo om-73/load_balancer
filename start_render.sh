@@ -3,6 +3,9 @@ set -e
 
 echo "🚀 Starting Load Balancer System on Render..."
 
+# Ensure all scripts are executable (fixes potential git permission issues)
+chmod +x *.sh
+
 # 1. Start Mock Backend Servers (Background)
 echo "Starting Mock Servers..."
 python3 mock_server.py 9081 2>&1 | tee backend1.log &

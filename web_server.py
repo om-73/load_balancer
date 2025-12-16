@@ -268,11 +268,21 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 print("Compiling CustomStrategy...")
                 result = subprocess.run(["javac", "-d", "bin", src_path, "-cp", "bin"], capture_output=True, text=True)
                 if result.returncode != 0:
+                     print(f"❌ Compilation Failed: {result.stderr}")
                      raise Exception("Compilation Failed:\n" + result.stderr)
                 
+                print("✅ Compilation Successful. Checking for restart_lb.sh...")
+                
+                # Check script existence
+                if not os.path.exists("restart_lb.sh"):
+                    print("❌ Error: restart_lb.sh not found!")
+                    raise Exception("restart_lb.sh missing on server")
+
                 # 3. Restart Load Balancer (Detached)
+                print("🚀 Triggering restart_lb.sh...")
                 # Use setsid to detach properly
                 subprocess.Popen(["bash", "restart_lb.sh"], start_new_session=True)
+                print("✅ Restart Signal Sent.")
                 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
