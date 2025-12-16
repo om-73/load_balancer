@@ -284,9 +284,9 @@
                 <option value="localhost">Localhost (Default)</option>
                 <option value="custom">🌍 Remote Backend (Render/Cloud)</option>
             </select>
-            <input type="text" id="customSourceInput" value="http://localhost:8000"
+            <input type="text" id="customSourceInput" value="https://load-balancer-1-xt61.onrender.com"
                 placeholder="https://my-app.onrender.com" onchange="updateDataSource()"
-                style="display: none; width: 140px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.75rem; padding: 2px 5px;">
+                style="display: none; width: 220px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.75rem; padding: 2px 5px;">
         </span>
         <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px;">
             <span id="connStatus" style="font-size: 0.75rem; color: #d29922;">Connecting...</span>
@@ -1223,7 +1223,28 @@ public class CustomStrategy implements LoadBalancingStrategy {
 
         // Initialize
         if (typeof loadTemplate === 'function') loadTemplate();
-        if (typeof checkEnvironment === 'function') checkEnvironment();
+
+        // 🌍 ENVIRONMENT CHECK: Auto-Switch to Render URL if running on Vercel
+        function checkEnvironment() {
+            const hostname = window.location.hostname;
+            // If we are NOT on localhost (i.e. we are on Vercel), default to the Render Backend
+            if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+                console.log("☁️ Cloud Environment Detected: Switching to Remote Backend");
+                const sourceSelect = document.getElementById('dataSource');
+                const sourceInput = document.getElementById('customSourceInput');
+
+                if (sourceSelect && sourceInput) {
+                    sourceSelect.value = 'custom';
+                    sourceSelect.dispatchEvent(new Event('change')); // Trigger UI update
+
+                    // The value is already set in HTML to the user's Render URL
+                    // We just ensure the system picks it up
+                    apiBase = sourceInput.value;
+                    fetchStats();
+                }
+            }
+        }
+        checkEnvironment();
 
         // 📍 Auto-fetch Local IP for convenience
         async function fetchLocalIp() {
