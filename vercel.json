@@ -2,19 +2,7 @@
     "version": 2,
     "rewrites": [
         {
-            "source": "/scan-ports",
-            "destination": "/api/scan.py"
-        },
-        {
-            "source": "/run-test",
-            "destination": "/api/run_test.py"
-        },
-        {
-            "source": "/stats",
-            "destination": "/api/stats.py"
-        },
-        {
-            "source": "/",
+            "source": "/(.*)",
             "destination": "/index.html"
         }
     ]
