@@ -20,5 +20,5 @@ RUN chmod +x *.sh
 # Compile the Java Load Balancer
 RUN javac -d bin src/main/java/com/loadbalancer/*.java
 
-# Run the web server (which manages the LB)
-CMD ["python3", "web_server.py"]
+# Run the startup script
+CMD ["./start_render.sh"]
