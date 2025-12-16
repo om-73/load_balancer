@@ -280,12 +280,12 @@
         <span style="margin: 0 10px;">•</span>
         <span>Source:
             <select id="dataSource" onchange="updateDataSource()"
-                style="background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.75rem; padding: 2px 4px;">
-                <option value="/">Cloud Demo</option>
-                <option value="custom">Custom IP...</option>
+                style="background:var(--card-bg); color:white; border:1px solid #30363d; padding:4px 8px; border-radius:4px;">
+                <option value="localhost">Localhost (Default)</option>
+                <option value="custom">🌍 Remote Backend (Render/Cloud)</option>
             </select>
-            <input type="text" id="customSourceInput" value="http://localhost:8000" placeholder="http://ip:port"
-                onchange="updateDataSource()"
+            <input type="text" id="customSourceInput" value="http://localhost:8000"
+                placeholder="https://my-app.onrender.com" onchange="updateDataSource()"
                 style="display: none; width: 140px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.75rem; padding: 2px 5px;">
         </span>
         <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px;">
