@@ -806,7 +806,7 @@ public class CustomStrategy implements LoadBalancingStrategy {
     private int counter = 0;
 
     @Override
-    public BackendServer getNextServer(List<BackendServer> servers) {
+    public BackendServer getNextServer(List<BackendServer> servers, String clientIp) {
         if (servers.isEmpty()) return null;
         // Simple Round Robin
         int index = counter % servers.size();
@@ -822,9 +822,21 @@ public class CustomStrategy implements LoadBalancingStrategy {
     private Random random = new Random();
 
     @Override
-    public BackendServer getNextServer(List<BackendServer> servers) {
+    public BackendServer getNextServer(List<BackendServer> servers, String clientIp) {
         if (servers.isEmpty()) return null;
         return servers.get(random.nextInt(servers.size()));
+    }
+}`,
+            "consistent_hashing": `package com.loadbalancer;
+import java.util.List;
+
+public class CustomStrategy implements LoadBalancingStrategy {
+    @Override
+    public BackendServer getNextServer(List<BackendServer> servers, String clientIp) {
+        if (servers.isEmpty()) return null;
+        // Simple Hash of IP for consistency
+        int hash = Math.abs(clientIp.hashCode());
+        return servers.get(hash % servers.size());
     }
 }`,
             "weighted": `package com.loadbalancer;
@@ -834,7 +846,7 @@ public class CustomStrategy implements LoadBalancingStrategy {
     private int counter = 0;
 
     @Override
-    public BackendServer getNextServer(List<BackendServer> servers) {
+    public BackendServer getNextServer(List<BackendServer> servers, String clientIp) {
         if (servers.isEmpty()) return null;
         
         // Weighted: Send 50% traffic to first server
