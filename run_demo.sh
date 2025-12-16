@@ -12,6 +12,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Check if javac exists
+if ! command -v javac &> /dev/null; then
+    echo "========================================================"
+    echo "❌ CRITICAL BUILD ERROR: Java Compiler (javac) NOT FOUND"
+    echo "========================================================"
+    echo "You are currently running in a Pure Python Environment."
+    echo "BUT this project requires Java for the Load Balancer."
+    echo ""
+    echo "👉 FIX: Go to Render Settings -> Runtime -> Change to 'Docker'"
+    echo "========================================================"
+    exit 1
+fi
+
 # Compile
 echo "Compiling..."
 javac src/main/java/com/loadbalancer/*.java
