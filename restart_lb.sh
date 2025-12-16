@@ -1,17 +1,22 @@
 #!/bin/bash
-echo "🔄 Restarting Load Balancer..."
+echo "🔄 Hot Swapping Load Balancer..."
 
-# 1. Find and Kill the running Load Balancer Java Process
-pkill -f "com.loadbalancer.LoadBalancer" || true
+# Find PID of Java LoadBalancer process
+LBPID=$(pgrep -f "com.loadbalancer.LoadBalancer")
 
-# 2. Wait a moment
-sleep 1
+if [ -n "$LBPID" ]; then
+    echo "Killing old process $LBPID..."
+    kill -9 $LBPID
+else
+    echo "No running Load Balancer found."
+fi
 
-# 3. Start it again (using same command as start_render.sh)
-# Ensure bin exists
+# Restart it (using same settings as start_render.sh)
+# Ensure binary dir exists
 mkdir -p bin
 
-# Start in background, piping output to log AND stdout
-nohup java -Xmx256m -cp bin com.loadbalancer.LoadBalancer 2>&1 | tee -a lb.log &
+echo "Starting new Load Balancer..."
+# Launch in background, use tee for logs, limit memory
+nohup java -Xmx256m -cp bin com.loadbalancer.LoadBalancer 2>&1 | tee lb.log &
 
-echo "✅ Load Balancer Restarted (New PID: $!)"
+echo "✅ Load Balancer Restarted with New Strategy!"

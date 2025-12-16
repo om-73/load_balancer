@@ -217,14 +217,12 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 host_url = data.get("host", "google.com")
                 
                 # Run the Java port scanner
-                # We need to capture stdout
-                # FIX: Use 'bin' directory where classes are compiled, not src
+                # FIX: Use 'bin' directory where classes are compiled
                 cmd = ["java", "-cp", "bin", "com.loadbalancer.PortScanner", host_url]
                 process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
                 stdout, stderr = process.communicate()
                 
                 if process.returncode != 0:
-                     # If bin fails, try recompiling or fallback (unlikely on Render if Dockerfile worked)
                     raise Exception(f"Scanner failed: {stderr}")
                     
                 # The visualizer expects JSON or text. Let's return the raw output for now or parse it.
@@ -266,16 +264,14 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                     f.write(java_code)
                     
                 # 2. Recompile
+                # Link against 'bin' because that's where LoadBalancingStrategy.class is
                 print("Compiling CustomStrategy...")
-                # FIX: Include 'bin' in classpath so it finds LoadBalancingStrategy.class
-                # Also include 'src/main/java' for any source refs, keeping it robust.
-                result = subprocess.run(["javac", "-d", "bin", src_path, "-cp", "bin:src/main/java"], capture_output=True, text=True)
+                result = subprocess.run(["javac", "-d", "bin", src_path, "-cp", "bin"], capture_output=True, text=True)
                 if result.returncode != 0:
                      raise Exception("Compilation Failed:\n" + result.stderr)
                 
                 # 3. Restart Load Balancer
-                # Now using the Helper Script we created
-                subprocess.Popen(["./restart_lb.sh"])
+                subprocess.Popen(["bash", "restart_lb.sh"])
                 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
