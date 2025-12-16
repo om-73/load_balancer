@@ -13,6 +13,8 @@ echo "✅ Mock Servers Started"
 # 2. Start Java Load Balancer (Background)
 echo "Starting Java Load Balancer..."
 # Ensure bin directory exists and classes are compiled (Dockerfile does this, but safety check)
+# FORCE CLEAN to prevent "wrong version" errors if old classes exist
+rm -rf bin/*
 mkdir -p bin
 # pipe logs to file AND stdout so they show up in Render Dashboard
 # -Xmx256m ensures we don't exceed Render's free tier RAM limit
