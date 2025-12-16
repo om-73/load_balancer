@@ -16,7 +16,9 @@ fi
 mkdir -p bin
 
 echo "Starting new Load Balancer..."
-# Launch in background, use tee for logs, limit memory
-nohup java -Xmx256m -cp bin com.loadbalancer.LoadBalancer 2>&1 | tee lb.log &
+# Launch in background, use tee -a to APPEND (fix connection break), limit memory
+nohup java -Xmx256m -cp bin com.loadbalancer.LoadBalancer 2>&1 | tee -a lb.log &
+disown
+sleep 1
 
 echo "✅ Load Balancer Restarted with New Strategy!"

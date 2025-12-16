@@ -270,8 +270,9 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 if result.returncode != 0:
                      raise Exception("Compilation Failed:\n" + result.stderr)
                 
-                # 3. Restart Load Balancer
-                subprocess.Popen(["bash", "restart_lb.sh"])
+                # 3. Restart Load Balancer (Detached)
+                # Use setsid to detach properly
+                subprocess.Popen(["bash", "restart_lb.sh"], start_new_session=True)
                 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
