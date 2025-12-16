@@ -15,7 +15,8 @@ echo "Starting Java Load Balancer..."
 # Ensure bin directory exists and classes are compiled (Dockerfile does this, but safety check)
 mkdir -p bin
 # pipe logs to file AND stdout so they show up in Render Dashboard
-java -cp bin com.loadbalancer.LoadBalancer 2>&1 | tee lb.log &
+# -Xmx256m ensures we don't exceed Render's free tier RAM limit
+java -Xmx256m -cp bin com.loadbalancer.LoadBalancer 2>&1 | tee lb.log &
 echo "✅ Load Balancer Started"
 
 # 3. Start Web Server (Foreground)
