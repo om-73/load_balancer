@@ -449,17 +449,16 @@
                     style="display: none; width: 100%; height: 200px; background: #0d1117; border: 1px solid #30363d; color: #e6edf3; font-family: monospace; padding: 10px; border-radius: 6px; font-size: 0.85rem; line-height: 1.4; resize: vertical;">
 package com.loadbalancer;
 import java.util.List;
+import java.util.Random;
 
 public class CustomStrategy implements LoadBalancingStrategy {
-    private int counter = 0;
+    private Random random = new Random();
 
     @Override
-    public BackendServer getNextServer(List<BackendServer> servers) {
+    public BackendServer getNextServer(List<BackendServer> servers, String clientIp) {
         if (servers.isEmpty()) return null;
-        // Simple Round Robin
-        int index = counter % servers.size();
-        counter++;
-        return servers.get(index);
+        // Simple Random Strategy
+        return servers.get(random.nextInt(servers.size()));
     }
 }</textarea>
             </div>
