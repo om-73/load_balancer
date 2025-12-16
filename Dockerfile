@@ -1,5 +1,6 @@
-# Use a slim Python base image
-FROM python:3.9-slim
+# Use a stable Debian 12 (Bookworm) base with Python 3.11
+# This ensures standard package repos are available for OpenJDK
+FROM python:3.11-slim-bookworm
 
 # Install OpenJDK 17 (Required for Java Load Balancer)
 # We also install 'procps' (for 'ps' command if needed) and 'curl'
