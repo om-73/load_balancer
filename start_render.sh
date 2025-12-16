@@ -16,6 +16,8 @@ echo "Starting Java Load Balancer..."
 # FORCE CLEAN to prevent "wrong version" errors if old classes exist
 rm -rf bin/*
 mkdir -p bin
+echo "Compiling Java Sources..."
+javac -d bin src/main/java/com/loadbalancer/*.java
 # pipe logs to file AND stdout so they show up in Render Dashboard
 # -Xmx256m ensures we don't exceed Render's free tier RAM limit
 java -Xmx256m -cp bin com.loadbalancer.LoadBalancer 2>&1 | tee lb.log &
