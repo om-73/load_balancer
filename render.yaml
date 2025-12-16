@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: load-balancer
+    env: docker
+    plan: free
+    # Docker runtime uses the Dockerfile's CMD, so we don't need a startCommand here 
+    # unless we want to override it.
+    branch: main
+    autoDeploy: true
