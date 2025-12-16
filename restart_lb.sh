@@ -1,13 +1,17 @@
 #!/bin/bash
-echo "♻️ Restarting Load Balancer to apply new Strategy..."
+echo "🔄 Restarting Load Balancer..."
 
-# Find and kill the MAIN LoadBalancer java process (not the mock servers or web server)
-pkill -f "java -cp bin com.loadbalancer.LoadBalancer"
+# 1. Find and Kill the running Load Balancer Java Process
+pkill -f "com.loadbalancer.LoadBalancer" || true
 
-# Compile everything just in case
-javac -d bin src/main/java/com/loadbalancer/*.java
+# 2. Wait a moment
+sleep 1
 
-# Start it back up in background, logging to lb.log
-nohup java -cp bin com.loadbalancer.LoadBalancer > lb.log 2>&1 &
+# 3. Start it again (using same command as start_render.sh)
+# Ensure bin exists
+mkdir -p bin
 
-echo "✅ Restarted!"
+# Start in background, piping output to log AND stdout
+nohup java -Xmx256m -cp bin com.loadbalancer.LoadBalancer 2>&1 | tee -a lb.log &
+
+echo "✅ Load Balancer Restarted (New PID: $!)"

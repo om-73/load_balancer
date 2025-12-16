@@ -218,11 +218,13 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                 
                 # Run the Java port scanner
                 # We need to capture stdout
-                cmd = ["java", "-cp", "src/main/java", "com.loadbalancer.PortScanner", host_url]
+                # FIX: Use 'bin' directory where classes are compiled, not src
+                cmd = ["java", "-cp", "bin", "com.loadbalancer.PortScanner", host_url]
                 process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
                 stdout, stderr = process.communicate()
                 
                 if process.returncode != 0:
+                     # If bin fails, try recompiling or fallback (unlikely on Render if Dockerfile worked)
                     raise Exception(f"Scanner failed: {stderr}")
                     
                 # The visualizer expects JSON or text. Let's return the raw output for now or parse it.
@@ -265,11 +267,14 @@ class LoadTestHandler(http.server.SimpleHTTPRequestHandler):
                     
                 # 2. Recompile
                 print("Compiling CustomStrategy...")
-                result = subprocess.run(["javac", "-d", "bin", src_path, "-cp", "src/main/java"], capture_output=True, text=True)
+                # FIX: Include 'bin' in classpath so it finds LoadBalancingStrategy.class
+                # Also include 'src/main/java' for any source refs, keeping it robust.
+                result = subprocess.run(["javac", "-d", "bin", src_path, "-cp", "bin:src/main/java"], capture_output=True, text=True)
                 if result.returncode != 0:
                      raise Exception("Compilation Failed:\n" + result.stderr)
                 
                 # 3. Restart Load Balancer
+                # Now using the Helper Script we created
                 subprocess.Popen(["./restart_lb.sh"])
                 
                 self.send_response(200)
