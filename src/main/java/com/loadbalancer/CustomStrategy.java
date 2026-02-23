@@ -1,15 +1,13 @@
 package com.loadbalancer;
-
 import java.util.List;
-import java.util.Random;
 
 public class CustomStrategy implements LoadBalancingStrategy {
-    private Random random = new Random();
-
+    private int counter = 0;
     @Override
     public BackendServer getNextServer(List<BackendServer> servers, String clientIp) {
-        if (servers.isEmpty())
-            return null;
-        return servers.get(random.nextInt(servers.size()));
+        if (servers.isEmpty()) return null;
+        counter++;
+        if (counter % 2 == 0) return servers.get(0);
+        return servers.get(counter % servers.size());
     }
 }

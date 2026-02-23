@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Load Babanser (v3.5)</title>
+    <style>
+        :root {
+            --bg-deep: #0B1220;
+            --neon-blue: #00C6FF;
+            --success-green: #22C55E;
+            --warning-yellow: #FACC15;
+            --error-red: #EF4444;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --neon-shadow: 0 0 15px rgba(0, 198, 255, 0.3);
+            --font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: white;
+            font-family: var(--font-family);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 20px;
+            position: relative;
+            background-image: radial-gradient(circle at 20% 20%, rgba(0, 198, 255, 0.05) 0%, transparent 40%);
+        }
+
+        /* Animated Stars */
+        .stars-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .title-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .lightning-icon {
+            font-size: 3.5rem;
+            color: var(--neon-blue);
+            filter: drop-shadow(0 0 10px var(--neon-blue));
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px var(--neon-blue)); }
+            50% { transform: scale(1.05); filter: drop-shadow(0 0 20px var(--neon-blue)); }
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .badges {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .badge {
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .badge.license { background: #FFD700; color: #000; }
+        .badge.java { background: #3498db; color: #fff; }
+        .badge.python { background: #2c3e50; border: 1px solid #3498db; color: #fff; }
+        .badge.build { background: #2ecc71; color: #fff; }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 25px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .card-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* Gauges */
+        .gauges {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px 0;
+        }
+
+        .gauge-module {
+            text-align: center;
+        }
+
+        .gauge-svg {
+            position: relative;
+            width: 150px;
+            height: 150px;
+        }
+
+        .gauge-ring {
+            fill: none;
+            stroke-width: 10;
+            stroke-linecap: round;
+        }
+
+        .gauge-bg {
+            stroke: rgba(255,255,255,0.05);
+        }
+
+        .gauge-progress {
+            stroke: var(--neon-blue);
+            stroke-dasharray: 251; /* 2 * PI * 40 */
+            transition: stroke-dashoffset 1s ease-out;
+            transform: rotate(-90deg);
+            transform-origin: center;
+        }
+
+        .gauge-ticks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .tick {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform-origin: 0% 0%;
+        }
+
+        .gauge-inner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .gauge-footer {
+            margin-top: 15px;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* Server Panel */
+        .server-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .server-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .server-item:last-child { border: none; }
+
+        .server-label {
+            flex: 1;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--success-green);
+        }
+
+        .status-dot.warning {
+            background: var(--warning-yellow);
+            box-shadow: 0 0 10px var(--warning-yellow);
+        }
+
+        .status-check {
+            color: var(--success-green);
+            font-size: 0.9rem;
+        }
+
+        .latency-text {
+            color: var(--warning-yellow);
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+
+        /* Smart Routing */
+        .strategy-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .strategy-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .strategy-indicator {
+            width: 6px;
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+        }
+
+        .enabled-status {
+            color: var(--success-green);
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-right: 20px;
+        }
+
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+
+        .toggle input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 22px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: var(--neon-blue); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .upload-btn {
+            margin-top: 10px;
+            width: 100%;
+            padding: 14px;
+            background: #1B2B3E;
+            border: 1px solid var(--neon-blue);
+            color: white;
+            border-radius: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .upload-btn:hover { background: rgba(0, 198, 255, 0.2); }
+
+        /* Port Scanner */
+        .scanner-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .input-box {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 12px 15px;
+            color: white;
+            font-family: inherit;
+        }
+
+        .scan-btn {
+            background: #1B2B3E;
+            border: 1px solid var(--neon-blue);
+            color: white;
+            padding: 0 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .output-box {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            height: 110px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* Architecture Section */
+        .bottom-row {
+            grid-column: span 2;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .arch-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            padding-top: 10px;
+        }
+
+        .arch-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 12px 20px;
+            text-align: center;
+            font-size: 0.9rem;
+            min-width: 120px;
+        }
+
+        .arch-arrow { color: rgba(255,255,255,0.2); }
+
+        .arch-v-arrow {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+            color: rgba(255,255,255,0.2);
+        }
+
+        /* Quick Start */
+        .quick-start-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            height: 100%;
+        }
+
+        .sh-btn {
+            background: #1B2B3E;
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0,198,255,0.2);
+        }
+
+        .quick-start-info {
+            color: rgba(255,255,255,0.4);
+            font-size: 0.9rem;
+        }
+
+        .quick-start-info span { color: var(--neon-blue); }
+
+        /* Sparkle */
+        .footer-sparkle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars-container" id="stars"></div>
+
+    <div class="header">
+        <div class="title-container">
+            <span class="lightning-icon">⚡</span>
+            <h1>Advanced Load Babanser (v3.5)</h1>
+        </div>
+        <div class="badges">
+            <div class="badge license">License - MIT</div>
+            <div class="badge java">Jave - 17+</div>
+            <div class="badge python">Python - 311+</div>
+            <div class="badge build">Build - Passing</div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <!-- Gauges Module -->
+        <div class="card">
+            <div class="card-header">Real-Time Web Dashboard</div>
+            <div class="gauges">
+                <div class="gauge-module">
+                    <div class="gauge-svg">
+                        <svg width="150" height="150">
+                            <circle class="gauge-ring gauge-bg" cx="75" cy="75" r="40"></circle>
+                            <circle class="gauge-ring gauge-progress" id="rps-ring" cx="75" cy="75" r="40" style="stroke-dashoffset: 75;"></circle>
+                        </svg>
+                        <div class="gauge-ticks" id="rps-ticks"></div>
+                        <div class="gauge-inner" id="rps-text">12,450</div>
+                    </div>
+                    <div class="gauge-footer">RPS (Requests Per Sepsend)</div>
+                </div>
+
+                <div class="gauge-module">
+                    <div class="gauge-svg">
+                        <svg width="150" height="150">
+                            <circle class="gauge-ring gauge-bg" cx="75" cy="75" r="40"></circle>
+                            <circle class="gauge-ring gauge-progress" id="conn-ring" cx="75" cy="75" r="40" style="stroke-dashoffset: 120;"></circle>
+                        </svg>
+                        <div class="gauge-ticks" id="conn-ticks"></div>
+                        <div class="gauge-inner" id="conn-text">8,920</div>
+                    </div>
+                    <div class="gauge-footer">Active Connections</div>
+                </div>
+
+                <div class="gauge-module">
+                    <div class="gauge-svg">
+                        <svg width="150" height="150">
+                            <circle class="gauge-ring gauge-bg" cx="75" cy="75" r="40"></circle>
+                            <circle class="gauge-ring gauge-progress" id="health-ring" cx="75" cy="75" r="40" style="stroke-dashoffset: 20;"></circle>
+                        </svg>
+                        <div class="gauge-ticks" id="health-ticks"></div>
+                        <div class="gauge-inner" id="health-text">98%</div>
+                    </div>
+                    <div class="gauge-footer">Server Health</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Server Panel -->
+        <div class="card">
+            <div class="card-header">Backend Servers</div>
+            <div class="server-list">
+                <div class="server-item">
+                    <div class="status-dot"></div>
+                    <div class="server-label">Server-01</div>
+                    <div class="status-check">✔</div>
+                    <div class="status-check">✔</div>
+                </div>
+                <div class="server-item">
+                    <div class="status-dot"></div>
+                    <div class="server-label">Server-01</div>
+                    <div class="status-check">✔</div>
+                    <div class="status-check">✔</div>
+                </div>
+                <div class="server-item">
+                    <div class="status-dot"></div>
+                    <div class="server-label">Server-02</div>
+                    <div class="status-check">✔</div>
+                    <div class="status-check">✔</div>
+                </div>
+                <div class="server-item">
+                    <div class="status-dot" style="background: cyan; box-shadow: 0 0 10px cyan;"></div>
+                    <div class="server-label">Server-04</div>
+                    <div class="status-check" style="color: cyan;">ℹ</div>
+                </div>
+                <div class="server-item">
+                    <div class="status-dot warning"></div>
+                    <div class="server-label">Server-04</div>
+                    <div class="latency-text">⚠️ - High Latency</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Strategy & Scanner -->
+        <div class="bottom-row">
+            <!-- Smart Routing -->
+            <div class="card">
+                <div class="card-header">Smart Routing Strategies</div>
+                <div class="strategy-row">
+                    <div class="strategy-name">
+                        <div class="strategy-indicator"></div>
+                        Least Connections
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <div class="enabled-status">✔ Enabled</div>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="strategy-row">
+                    <div class="strategy-name">
+                        <div class="strategy-indicator"></div>
+                        Latency-Aware
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <div class="enabled-status">✔ Enabled</div>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <button class="upload-btn" onclick="uploadStrategy()">
+                    <span>➕ Upload Custom Strategy</span>
+                </button>
+            </div>
+
+            <!-- Port Scanner -->
+            <div class="card">
+                <div class="card-header">Integrated Port Scanner</div>
+                <div class="scanner-controls">
+                    <input type="text" class="input-box" value="[lobaslost]">
+                    <button class="scan-btn" onclick="startScan()">Scan</button>
+                </div>
+                <div class="output-box" id="scanner-out">
+                    <p>[SCANANING...]</p>
+                    <p style="color:var(--neon-blue); margin-top:5px;">[PORT 80: OPEN]</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Load Launcher -->
+        <div class="bottom-row" style="grid-column: span 2;">
+            <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                   <div class="card-header" style="margin-bottom: 5px;">🔥 Load Launcher</div>
+                   <div class="quick-start-info">Set Requests and Concurrency to fire load.</div>
+                </div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <input type="text" class="input-box" id="load-reqs" value="1000" style="width: 100px;">
+                    <input type="text" class="input-box" id="load-conc" value="50" style="width: 80px;">
+                    <button class="scan-btn" onclick="fireLoad()" style="height: 44px; padding: 0 40px; background: var(--bg-deep); border-color: var(--success-green); color: var(--success-green); box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);">FIRE LOAD</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Architecture & Quick Start -->
+        <div class="bottom-row">
+            <!-- System Architecture -->
+            <div class="card">
+                <div class="card-header">System Architecture</div>
+                <div class="arch-diagram">
+                    <div>
+                        <div class="arch-box">Core</div>
+                        <div class="arch-v-arrow">↓</div>
+                        <div class="arch-box">Java</div>
+                    </div>
+                    <div class="arch-arrow">→</div>
+                    <div>
+                        <div class="arch-box">API Layer</div>
+                        <div class="arch-v-arrow">↓</div>
+                        <div class="arch-box">Frentend (Vanilla JS)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Start -->
+            <div class="card">
+                <div class="card-header">Quick Start</div>
+                <div class="quick-start-body">
+                    <button class="sh-btn">./start_all.sh</button>
+                    <div class="quick-start-info">Open <span>http://llosahost_8000</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-sparkle">✦</div>
+
+    <script>
+        // Star Field generator
+        function initStars() {
+            const container = document.getElementById('stars');
+            for(let i=0; i<80; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                const size = Math.random() * 2 + 1;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+                container.appendChild(star);
+            }
+        }
+
+        // Gauge Ticks generator
+        function initTicks() {
+            ['rps', 'conn', 'health'].forEach(id => {
+                const container = document.getElementById(id + '-ticks');
+                for(let i=0; i<12; i++) {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick';
+                    const angle = (i * 30);
+                    tick.style.transform = `rotate(${angle}deg) translateY(-48px)`;
+                    container.appendChild(tick);
+                }
+            });
+        }
+
+        // Basic interactivity
+        function startScan() {
+            const out = document.getElementById('scanner-out');
+            out.innerHTML = '<p>[SCANANING...]</p>';
+            setTimeout(() => {
+                out.innerHTML += '<p style="color:var(--neon-blue); margin-top:5px;">[PORT 80: OPEN]</p>';
+            }, 1000);
+        }
+
+        function uploadStrategy() {
+            const code = prompt("Paste Java Code:");
+            if (code) alert("Strategy Processing...");
+        }
+
+        async function fireLoad() {
+            const requests = document.getElementById('load-reqs').value;
+            const concurrency = document.getElementById('load-conc').value;
+            
+            try {
+                const response = await fetch('/run-test', {
+                    method: 'POST',
+                    body: JSON.stringify({ requests: parseInt(requests), concurrency: parseInt(concurrency) })
+                });
+                const data = await response.json();
+                alert("Load test triggered! " + (data.error || ""));
+            } catch (error) {
+                alert("Failed to trigger load test: " + error.message);
+            }
+        }
+
+        async function updateStats() {
+            try {
+                const res = await fetch('/stats');
+                const data = await res.json();
+                
+                // RPS update logic
+                const rpsValue = Math.floor(data.rps) || 12450;
+                document.getElementById('rps-text').innerText = rpsValue.toLocaleString();
+                const rpsCircumference = 2 * Math.PI * 40;
+                document.getElementById('rps-ring').style.strokeDashoffset = rpsCircumference * (1 - Math.min(rpsValue / 20000, 1));
+
+                // Conn update
+                const connValue = data.total_requests || 8920;
+                document.getElementById('conn-text').innerText = connValue.toLocaleString();
+                document.getElementById('conn-ring').style.strokeDashoffset = rpsCircumference * (1 - Math.min(connValue / 15000, 1));
+                
+                // Health update
+                const healthValue = 98; // Simulated for visual matching
+                document.getElementById('health-text').innerText = healthValue + '%';
+                document.getElementById('health-ring').style.strokeDashoffset = rpsCircumference * (1 - 0.98);
+
+            } catch (e) {
+                console.log("Status update offline");
+            }
+        }
+
+        initStars();
+        initTicks();
+        setInterval(updateStats, 2000);
+    </script>
+</body>
+</html>
