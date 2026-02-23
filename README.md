@@ -121,4 +121,3 @@ docker run -p 8000:8000 load-balancer
 
 ---
 
-*Developed with precision by [Om Prakash Singh](https://github.com/omprakashsingh)*
