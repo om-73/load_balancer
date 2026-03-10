@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advanced Load Babanser (v3.5)</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <style>
         :root {
             --bg-deep: #0B1220;
@@ -56,8 +58,15 @@
         }
 
         @keyframes twinkle {
-            0%, 100% { opacity: 0.1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 0.1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
 
         /* Header */
@@ -74,16 +83,25 @@
             margin-bottom: 30px;
         }
 
-        .lightning-icon {
-            font-size: 3.5rem;
-            color: var(--neon-blue);
+        .logo {
+            height: 4.5rem;
             filter: drop-shadow(0 0 10px var(--neon-blue));
             animation: pulse 2s infinite ease-in-out;
+            object-fit: contain;
         }
 
         @keyframes pulse {
-            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px var(--neon-blue)); }
-            50% { transform: scale(1.05); filter: drop-shadow(0 0 20px var(--neon-blue)); }
+
+            0%,
+            100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 10px var(--neon-blue));
+            }
+
+            50% {
+                transform: scale(1.05);
+                filter: drop-shadow(0 0 20px var(--neon-blue));
+            }
         }
 
         .header h1 {
@@ -103,14 +121,30 @@
             border-radius: 8px;
             font-size: 0.9rem;
             font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .badge.license { background: #FFD700; color: #000; }
-        .badge.java { background: #3498db; color: #fff; }
-        .badge.python { background: #2c3e50; border: 1px solid #3498db; color: #fff; }
-        .badge.build { background: #2ecc71; color: #fff; }
+        .badge.license {
+            background: #FFD700;
+            color: #000;
+        }
+
+        .badge.java {
+            background: #3498db;
+            color: #fff;
+        }
+
+        .badge.python {
+            background: #2c3e50;
+            border: 1px solid #3498db;
+            color: #fff;
+        }
+
+        .badge.build {
+            background: #2ecc71;
+            color: #fff;
+        }
 
         /* Grid Layout */
         .grid {
@@ -128,14 +162,14 @@
             border: 1px solid var(--glass-border);
             padding: 30px;
             position: relative;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
 
         .card-header {
             font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: 30px;
-            color: rgba(255,255,255,0.9);
+            color: rgba(255, 255, 255, 0.9);
         }
 
         /* Gauges */
@@ -162,12 +196,13 @@
         }
 
         .gauge-bg {
-            stroke: rgba(255,255,255,0.05);
+            stroke: rgba(255, 255, 255, 0.05);
         }
 
         .gauge-progress {
             stroke: var(--neon-blue);
-            stroke-dasharray: 251; /* 2 * PI * 40 */
+            stroke-dasharray: 251;
+            /* 2 * PI * 40 */
             transition: stroke-dashoffset 1s ease-out;
             transform: rotate(-90deg);
             transform-origin: center;
@@ -186,7 +221,7 @@
             position: absolute;
             width: 4px;
             height: 4px;
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 50%;
             top: 50%;
             left: 50%;
@@ -205,7 +240,7 @@
         .gauge-footer {
             margin-top: 15px;
             font-size: 0.8rem;
-            color: rgba(255,255,255,0.5);
+            color: rgba(255, 255, 255, 0.5);
         }
 
         /* Server Panel */
@@ -220,10 +255,12 @@
             align-items: center;
             gap: 15px;
             padding-bottom: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
         }
 
-        .server-item:last-child { border: none; }
+        .server-item:last-child {
+            border: none;
+        }
 
         .server-label {
             flex: 1;
@@ -273,7 +310,7 @@
         .strategy-indicator {
             width: 6px;
             height: 6px;
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 50%;
         }
 
@@ -294,12 +331,19 @@
             height: 22px;
         }
 
-        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
 
         .slider {
             position: absolute;
             cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background-color: #333;
             transition: .4s;
             border-radius: 22px;
@@ -317,8 +361,13 @@
             border-radius: 50%;
         }
 
-        input:checked + .slider { background-color: var(--neon-blue); }
-        input:checked + .slider:before { transform: translateX(22px); }
+        input:checked+.slider {
+            background-color: var(--neon-blue);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(22px);
+        }
 
         .upload-btn {
             margin-top: 10px;
@@ -337,7 +386,9 @@
             transition: 0.3s;
         }
 
-        .upload-btn:hover { background: rgba(0, 198, 255, 0.2); }
+        .upload-btn:hover {
+            background: rgba(0, 198, 255, 0.2);
+        }
 
         /* Port Scanner */
         .scanner-controls {
@@ -348,8 +399,8 @@
 
         .input-box {
             flex: 1;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             padding: 12px 15px;
             color: white;
@@ -367,14 +418,14 @@
         }
 
         .output-box {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.05);
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 20px;
             height: 110px;
             font-family: 'Courier New', monospace;
             font-size: 0.9rem;
-            color: rgba(255,255,255,0.7);
+            color: rgba(255, 255, 255, 0.7);
         }
 
         /* Architecture Section */
@@ -394,8 +445,8 @@
         }
 
         .arch-box {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 10px;
             padding: 12px 20px;
             text-align: center;
@@ -403,13 +454,15 @@
             min-width: 120px;
         }
 
-        .arch-arrow { color: rgba(255,255,255,0.2); }
+        .arch-arrow {
+            color: rgba(255, 255, 255, 0.2);
+        }
 
         .arch-v-arrow {
             display: flex;
             justify-content: center;
             margin: 10px 0;
-            color: rgba(255,255,255,0.2);
+            color: rgba(255, 255, 255, 0.2);
         }
 
         /* Quick Start */
@@ -432,15 +485,17 @@
             font-weight: 700;
             font-size: 1.1rem;
             cursor: pointer;
-            box-shadow: 0 0 15px rgba(0,198,255,0.2);
+            box-shadow: 0 0 15px rgba(0, 198, 255, 0.2);
         }
 
         .quick-start-info {
-            color: rgba(255,255,255,0.4);
+            color: rgba(255, 255, 255, 0.4);
             font-size: 0.9rem;
         }
 
-        .quick-start-info span { color: var(--neon-blue); }
+        .quick-start-info span {
+            color: var(--neon-blue);
+        }
 
         /* Sparkle */
         .footer-sparkle {
@@ -451,12 +506,13 @@
         }
     </style>
 </head>
+
 <body>
     <div class="stars-container" id="stars"></div>
 
     <div class="header">
         <div class="title-container">
-            <span class="lightning-icon">⚡</span>
+            <img class="logo" src="logo.png" alt="Logo">
             <h1>Advanced Load Babanser (v3.5)</h1>
         </div>
         <div class="badges">
@@ -476,7 +532,8 @@
                     <div class="gauge-svg">
                         <svg width="150" height="150">
                             <circle class="gauge-ring gauge-bg" cx="75" cy="75" r="40"></circle>
-                            <circle class="gauge-ring gauge-progress" id="rps-ring" cx="75" cy="75" r="40" style="stroke-dashoffset: 75;"></circle>
+                            <circle class="gauge-ring gauge-progress" id="rps-ring" cx="75" cy="75" r="40"
+                                style="stroke-dashoffset: 75;"></circle>
                         </svg>
                         <div class="gauge-ticks" id="rps-ticks"></div>
                         <div class="gauge-inner" id="rps-text">12,450</div>
@@ -488,7 +545,8 @@
                     <div class="gauge-svg">
                         <svg width="150" height="150">
                             <circle class="gauge-ring gauge-bg" cx="75" cy="75" r="40"></circle>
-                            <circle class="gauge-ring gauge-progress" id="conn-ring" cx="75" cy="75" r="40" style="stroke-dashoffset: 120;"></circle>
+                            <circle class="gauge-ring gauge-progress" id="conn-ring" cx="75" cy="75" r="40"
+                                style="stroke-dashoffset: 120;"></circle>
                         </svg>
                         <div class="gauge-ticks" id="conn-ticks"></div>
                         <div class="gauge-inner" id="conn-text">8,920</div>
@@ -500,7 +558,8 @@
                     <div class="gauge-svg">
                         <svg width="150" height="150">
                             <circle class="gauge-ring gauge-bg" cx="75" cy="75" r="40"></circle>
-                            <circle class="gauge-ring gauge-progress" id="health-ring" cx="75" cy="75" r="40" style="stroke-dashoffset: 20;"></circle>
+                            <circle class="gauge-ring gauge-progress" id="health-ring" cx="75" cy="75" r="40"
+                                style="stroke-dashoffset: 20;"></circle>
                         </svg>
                         <div class="gauge-ticks" id="health-ticks"></div>
                         <div class="gauge-inner" id="health-text">98%</div>
@@ -599,13 +658,15 @@
         <div class="bottom-row" style="grid-column: span 2;">
             <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                   <div class="card-header" style="margin-bottom: 5px;">🔥 Load Launcher</div>
-                   <div class="quick-start-info">Set Requests and Concurrency to fire load.</div>
+                    <div class="card-header" style="margin-bottom: 5px;">🔥 Load Launcher</div>
+                    <div class="quick-start-info">Set Requests and Concurrency to fire load.</div>
                 </div>
                 <div style="display: flex; gap: 15px; align-items: center;">
                     <input type="text" class="input-box" id="load-reqs" value="1000" style="width: 100px;">
                     <input type="text" class="input-box" id="load-conc" value="50" style="width: 80px;">
-                    <button class="scan-btn" onclick="fireLoad()" style="height: 44px; padding: 0 40px; background: var(--bg-deep); border-color: var(--success-green); color: var(--success-green); box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);">FIRE LOAD</button>
+                    <button class="scan-btn" onclick="fireLoad()"
+                        style="height: 44px; padding: 0 40px; background: var(--bg-deep); border-color: var(--success-green); color: var(--success-green); box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);">FIRE
+                        LOAD</button>
                 </div>
             </div>
         </div>
@@ -647,7 +708,7 @@
         // Star Field generator
         function initStars() {
             const container = document.getElementById('stars');
-            for(let i=0; i<80; i++) {
+            for (let i = 0; i < 80; i++) {
                 const star = document.createElement('div');
                 star.className = 'star';
                 star.style.left = Math.random() * 100 + '%';
@@ -664,7 +725,7 @@
         function initTicks() {
             ['rps', 'conn', 'health'].forEach(id => {
                 const container = document.getElementById(id + '-ticks');
-                for(let i=0; i<12; i++) {
+                for (let i = 0; i < 12; i++) {
                     const tick = document.createElement('div');
                     tick.className = 'tick';
                     const angle = (i * 30);
@@ -691,7 +752,7 @@
         async function fireLoad() {
             const requests = document.getElementById('load-reqs').value;
             const concurrency = document.getElementById('load-conc').value;
-            
+
             try {
                 const response = await fetch('/run-test', {
                     method: 'POST',
@@ -708,7 +769,7 @@
             try {
                 const res = await fetch('/stats');
                 const data = await res.json();
-                
+
                 // RPS update logic
                 const rpsValue = Math.floor(data.rps) || 12450;
                 document.getElementById('rps-text').innerText = rpsValue.toLocaleString();
@@ -719,7 +780,7 @@
                 const connValue = data.total_requests || 8920;
                 document.getElementById('conn-text').innerText = connValue.toLocaleString();
                 document.getElementById('conn-ring').style.strokeDashoffset = rpsCircumference * (1 - Math.min(connValue / 15000, 1));
-                
+
                 // Health update
                 const healthValue = 98; // Simulated for visual matching
                 document.getElementById('health-text').innerText = healthValue + '%';
@@ -735,4 +796,5 @@
         setInterval(updateStats, 2000);
     </script>
 </body>
+
 </html>

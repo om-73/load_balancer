@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advanced Load Balancer v4.0</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <link
         href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Rajdhani:wght@500;600;700&family=Exo+2:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
@@ -73,19 +74,11 @@
             gap: 10px;
         }
 
-        .nav-icon {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 2px;
-            width: 28px;
-            height: 28px;
-        }
-
-        .nav-icon span {
-            background: var(--cyan);
-            border-radius: 2px;
-            opacity: .8;
+        .nav-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            object-fit: contain;
         }
 
         .nav-title {
@@ -828,9 +821,7 @@
     <!-- NAVBAR -->
     <nav class="navbar">
         <div class="nav-left">
-            <div class="nav-icon">
-                <span></span><span></span><span></span><span></span>
-            </div>
+            <img src="logo.png" alt="Logo" class="nav-logo">
             <span class="nav-title">Advanced Load Balancer <em>(v4.0)</em></span>
         </div>
         <div class="nav-right">
